@@ -20,7 +20,8 @@ export async function syncRepository(repositoryId: string) {
     const iconUrl = typeof config?.iconURL === "string" && config.iconURL.startsWith("https://") ? config.iconURL : null;
     const slug = `${slugify(name)}-${slugify(repo.owner)}-${slugify(repo.name)}`.slice(0, 100);
     const app = await db.app.upsert({ where: { slug }, update: { name, bundleId, developerName, description, iconUrl, category, githubRepositoryUrl: repo.html_url, githubOwner: repo.owner, githubRepository: repo.repository, lastSyncedAt: new Date() }, create: { slug, name, bundleId, developerName, description, iconUrl, category, githubRepositoryUrl: repo.html_url, githubOwner: repo.owner, githubRepository: repo.repository, lastSyncedAt: new Date() } });
-    await db.appRepository.upsert({ where: { appId_repositoryId: { appId: app.id, repositoryId } }, update: { configuration: config ?? undefined }, create: { appId: app.id, repositoryId, configuration: config ?? undefined } });
+    const configuration = config ? JSON.parse(JSON.stringify(config)) : undefined;
+    await db.appRepository.upsert({ where: { appId_repositoryId: { appId: app.id, repositoryId } }, update: { configuration }, create: { appId: app.id, repositoryId, configuration } });
     for (const release of releases.filter(r => !r.draft && (!r.prerelease || config?.includePrereleases === true))) {
       const ipa = release.assets.filter(a => isIpaAsset(a.name));
       if (!ipa.length) continue;
