@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { getAltStoreConfig, getReadme, getReleases, getRepository, isIpaAsset, normalizeVersion, extractDescription } from "./github";
+import { getAltStoreConfig, getReadme, getReleases, getRepository, getRepositoryIcon, isIpaAsset, normalizeVersion, extractDescription } from "./github";
 
 const slugify = (v: string) => v.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
 
@@ -11,16 +11,14 @@ export async function syncRepository(repositoryId: string) {
     const repo = await getRepository(stored.githubUrl);
     const releases = await getReleases(repo.owner, repo.repository);
     const readme = await getReadme(repo.owner, repo.repository);
-    const config = await getAltStoreConfig(repo.owner, repo.repository, stored.branch || repo.default_branch);
+    const branch = stored.branch || repo.default_branch;
+    const config = await getAltStoreConfig(repo.owner, repo.repository, branch);
     const name = typeof config?.name === "string" ? config.name : repo.name;
     const developerName = typeof config?.developerName === "string" ? config.developerName : repo.owner;
     const description = typeof config?.description === "string" ? config.description : repo.description || extractDescription(readme);
-    const bundleId = typeof config?.bundleIdentifier === "string" ? config.bundleIdentifier : `com.sideloadhub.${slugify(repo.owner)}.${slugify(repo.name)}`;
+    const bundleId = typeof config?.bundleIdentifier === "string" ? config.bundleIdentifier : "";
     const category = typeof config?.category === "string" ? config.category : "Other";
-    const configuredIcon = typeof config?.iconURL === "string" && config.iconURL.startsWith("https://") ? config.iconURL : null;
-    // AltStore-compatible feeds require an iconURL. Prefer developer-provided metadata;
-    // otherwise use the public GitHub owner avatar as a stable HTTPS fallback.
-    const iconUrl = configuredIcon ?? `https://github.com/${encodeURIComponent(repo.owner)}.png?size=512`;
+    const iconUrl = await getRepositoryIcon(repo.owner, repo.repository, branch, config?.iconURL);
     const slug = `${slugify(name)}-${slugify(repo.owner)}-${slugify(repo.name)}`.slice(0, 100);
     const app = await db.app.upsert({ where: { slug }, update: { name, bundleId, developerName, description, iconUrl, category, githubRepositoryUrl: repo.html_url, githubOwner: repo.owner, githubRepository: repo.repository, lastSyncedAt: new Date() }, create: { slug, name, bundleId, developerName, description, iconUrl, category, githubRepositoryUrl: repo.html_url, githubOwner: repo.owner, githubRepository: repo.repository, lastSyncedAt: new Date() } });
     const configuration = config ? JSON.parse(JSON.stringify(config)) : undefined;
