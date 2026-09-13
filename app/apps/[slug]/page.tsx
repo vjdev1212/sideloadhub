@@ -1,9 +1,24 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { RatingStars } from "@/components/rating-stars";
 
 export const dynamic = "force-dynamic";
+
+function getRequestOrigin(headerStore: Headers) {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
+  if (configured && !/localhost|127\.0\.0\.1/i.test(configured)) return configured;
+
+  const forwardedHost = headerStore.get("x-forwarded-host");
+  const forwardedProto = headerStore.get("x-forwarded-proto") || "https";
+  if (forwardedHost) return `${forwardedProto}://${forwardedHost}`;
+
+  const host = headerStore.get("host");
+  if (host) return `${forwardedProto}://${host}`;
+
+  return configured || "http://localhost:3000";
+}
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -15,7 +30,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const count = aggregate._count.rating ?? 0;
   const latest = app.releases[0];
   const repoName = app.repositories[0]?.repository.repository;
-  const site = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const site = getRequestOrigin(await headers());
   const altStoreUrl = repoName ? `${site}/${encodeURIComponent(repoName)}/altstore.json` : null;
 
   return <main className="mx-auto min-h-screen max-w-5xl px-5 py-12">
