@@ -1,0 +1,5 @@
+import Link from "next/link";
+
+export default function AppsPage() {
+  return <main className="mx-auto min-h-screen max-w-7xl px-5 py-12 lg:px-8"><Link href="/" className="text-sm text-gray-500">← SideloadHub</Link><div className="mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-sm font-medium text-blue-600">Catalog</p><h1 className="mt-1 text-5xl font-semibold tracking-tight">Apps</h1></div><input placeholder="Search apps, developers, bundles…" className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm outline-none dark:border-white/10 dark:bg-white/5 sm:w-80"/></div><div className="mt-10 rounded-3xl border border-dashed border-black/10 p-12 text-center dark:border-white/10"><p className="text-lg font-medium">No apps yet</p><p className="mt-2 text-sm text-gray-500">Add your first public GitHub repository to start building the catalog.</p><Link href="/submit" className="mt-5 inline-block rounded-full bg-black px-5 py-2.5 text-sm font-semibold text-white dark:bg-white dark:text-black">Add Repository</Link></div></main>;
+}
