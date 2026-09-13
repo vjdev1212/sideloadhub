@@ -12,7 +12,7 @@ model App {
   id                   String          @id @default(cuid())
   slug                 String          @unique
   name                 String
-  bundleId             String
+  bundleId             String          @default("")
   developerName        String
   developerWebsite     String?
   description          String?
