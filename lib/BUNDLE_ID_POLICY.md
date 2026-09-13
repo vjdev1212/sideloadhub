@@ -1,0 +1,1 @@
+Bundle identifiers are never invented. A source app is eligible for AltStore/SideStore JSON only when a real bundleIdentifier is provided by repository .altstore.json metadata. Otherwise the catalog may display the app, but the per-app source omits it until a real identifier is configured.
