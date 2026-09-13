@@ -49,6 +49,8 @@ export type AltStoreSource = {
   news: SourceNews[];
 };
 
+type SourceMetadata = Omit<AltStoreSource, "apps">;
+
 const versionKey = (v: string) => v.replace(/^v/i, "").split(/[+-]/)[0].split(".").map(n => Number(n) || 0);
 
 function compareVersion(a: string, b: string) {
@@ -59,7 +61,7 @@ function compareVersion(a: string, b: string) {
   return b.localeCompare(a);
 }
 
-export function buildAltStoreSource(app: SourceApp, metadata: AltStoreSource): AltStoreSource {
+export function buildAltStoreSource(app: SourceApp, metadata: SourceMetadata): AltStoreSource {
   const versions = app.versions
     .filter(v => v.version && /^https:\/\//i.test(v.downloadURL))
     .sort((a, b) => compareVersion(a.version, b.version))
