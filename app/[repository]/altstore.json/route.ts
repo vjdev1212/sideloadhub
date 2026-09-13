@@ -37,13 +37,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
     subtitle: app.category,
     localizedDescription: app.description ?? undefined,
     iconURL: app.iconUrl ?? undefined,
-    versions: app.releases.flatMap(r => r.assets.filter(a => /^https:\/\//i.test(a.downloadUrl)).map(a => ({
-      version: r.version,
-      date: r.publishedAt?.toISOString(),
-      downloadURL: a.downloadUrl,
-      size: a.size ? Number(a.size) : undefined,
-      localizedDescription: r.releaseNotes ?? undefined,
-    }))),
+    versions: app.releases.flatMap(r => {
+      const asset = r.assets.find(a => /^https:\/\//i.test(a.downloadUrl));
+      return asset ? [{
+        version: r.version,
+        date: r.publishedAt?.toISOString(),
+        downloadURL: asset.downloadUrl,
+        size: asset.size ? Number(asset.size) : undefined,
+        localizedDescription: r.releaseNotes ?? undefined,
+      }] : [];
+    }),
   };
 
   const source = buildAltStoreSource([sourceApp], app.name);
