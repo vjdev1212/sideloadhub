@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getRepositoryHeader } from "@/lib/github";
 import { buildAltStoreSource, buildReleaseNews, type SourceApp } from "@/lib/source";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,11 @@ function asStringArray(config: Record<string, unknown>, key: string) {
   return Array.isArray(config[key]) ? config[key].filter((value): value is string => typeof value === "string" && /^https:\/\//i.test(value)) : [];
 }
 
+function feedIdentifier(repositoryName: string) {
+  const safe = repositoryName.toLowerCase().trim().replace(/[^a-z0-9.-]+/g, "-").replace(/^-|-$/g, "") || "app";
+  return `com.sideloadhub.${safe}`;
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ repository: string }> }) {
   const { repository } = await params;
   const repo = await db.repository.findFirst({
@@ -21,11 +27,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
         include: {
           app: {
             include: {
-              releases: {
-                where: { draft: false },
-                include: { assets: true },
-                orderBy: { publishedAt: "desc" },
-              },
+              releases: { where: { draft: false }, include: { assets: true }, orderBy: { publishedAt: "desc" } },
             },
           },
         },
@@ -43,11 +45,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
     ? appLink.configuration as Record<string, unknown>
     : {};
 
+  const identifier = feedIdentifier(repo.repository);
   const iconURL = asString(config, "iconURL") || app.iconUrl || `https://github.com/${encodeURIComponent(repo.owner)}.png?size=512`;
-  const headerURL = asString(config, "headerURL");
+  const headerFromRepo = await getRepositoryHeader(repo.owner, repo.repository, repo.branch || "main", config.headerURL);
+  const headerURL = headerFromRepo || iconURL;
   const website = asString(config, "website") || app.developerWebsite || app.githubRepositoryUrl;
   const subtitle = asString(config, "subtitle") || app.name;
-  const tintColor = asString(config, "tintColor");
+  const description = asString(config, "description") || app.description || `${app.name} published from ${repo.owner}/${repo.repository}.`;
+  const tintColor = asString(config, "tintColor") || "#007AFF";
   const category = asString(config, "category") || app.category.toLowerCase();
   const screenshots = asStringArray(config, "screenshots");
   const minOSVersion = asString(config, "minOSVersion") || asString(config, "minimumOSVersion");
@@ -65,16 +70,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
     }];
   });
 
-  const appPermissions = config.appPermissions && typeof config.appPermissions === "object" && !Array.isArray(config.appPermissions)
+  const configuredPermissions = config.appPermissions && typeof config.appPermissions === "object" && !Array.isArray(config.appPermissions)
     ? config.appPermissions as { entitlements?: unknown; privacy?: unknown }
     : {};
 
   const sourceApp: SourceApp = {
     name: app.name,
-    bundleIdentifier: app.bundleId,
+    bundleIdentifier: identifier,
     developerName: app.developerName,
     subtitle,
-    localizedDescription: app.description || undefined,
+    localizedDescription: description,
     iconURL,
     headerURL,
     website,
@@ -83,24 +88,23 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
     screenshots,
     versions,
     appPermissions: {
-      entitlements: Array.isArray(appPermissions.entitlements) ? appPermissions.entitlements.filter((value): value is string => typeof value === "string") : [],
-      privacy: Array.isArray(appPermissions.privacy) ? appPermissions.privacy.filter((value): value is string => typeof value === "string") : [],
+      entitlements: Array.isArray(configuredPermissions.entitlements) ? configuredPermissions.entitlements.filter((value): value is string => typeof value === "string") : [],
+      privacy: Array.isArray(configuredPermissions.privacy) ? configuredPermissions.privacy.filter((value): value is string => typeof value === "string") : [],
     },
   };
 
   const source = buildAltStoreSource(sourceApp, {
     name: app.name,
-    identifier: app.bundleId,
+    identifier,
     subtitle,
-    description: app.description || undefined,
+    description,
     iconURL,
     headerURL,
     website,
     tintColor,
-    news: buildReleaseNews(sourceApp, versions, tintColor, headerURL || iconURL, website),
+    featuredApps: [identifier],
+    news: buildReleaseNews(sourceApp, versions, tintColor, headerURL, website),
   });
 
-  return NextResponse.json(source, {
-    headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600" },
-  });
+  return NextResponse.json(source, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600" } });
 }
