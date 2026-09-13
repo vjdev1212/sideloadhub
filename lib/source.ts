@@ -22,31 +22,31 @@ export type SourceApp = {
   name: string;
   bundleIdentifier: string;
   developerName: string;
-  subtitle?: string;
-  localizedDescription?: string;
+  subtitle: string;
+  localizedDescription: string;
   iconURL: string;
   headerURL?: string;
-  website?: string;
-  tintColor?: string;
-  category?: string;
-  screenshots?: string[];
+  website: string;
+  tintColor: string;
+  category: string;
+  screenshots: string[];
   downloadURL?: string;
   versions: SourceVersion[];
-  appPermissions?: { entitlements: string[]; privacy: string[] };
+  appPermissions: { entitlements: string[]; privacy: string[] };
 };
 
 export type AltStoreSource = {
   name: string;
   identifier: string;
-  subtitle?: string;
-  description?: string;
+  subtitle: string;
+  description: string;
   iconURL: string;
-  headerURL?: string;
-  website?: string;
-  tintColor?: string;
+  headerURL: string;
+  website: string;
+  tintColor: string;
   featuredApps: string[];
   apps: SourceApp[];
-  news?: SourceNews[];
+  news: SourceNews[];
 };
 
 const versionKey = (v: string) => v.replace(/^v/i, "").split(/[+-]/)[0].split(".").map(n => Number(n) || 0);
@@ -59,46 +59,19 @@ function compareVersion(a: string, b: string) {
   return b.localeCompare(a);
 }
 
-export function buildAltStoreSource(
-  app: SourceApp,
-  metadata: Omit<AltStoreSource, "apps" | "featuredApps" | "identifier" | "name" | "iconURL"> & {
-    name?: string;
-    identifier?: string;
-    iconURL?: string;
-  } = {},
-): AltStoreSource {
+export function buildAltStoreSource(app: SourceApp, metadata: AltStoreSource): AltStoreSource {
   const versions = app.versions
     .filter(v => v.version && /^https:\/\//i.test(v.downloadURL))
     .sort((a, b) => compareVersion(a.version, b.version))
     .slice(0, 5);
 
-  const validApp: SourceApp = {
-    ...app,
-    versions,
-    downloadURL: versions[0]?.downloadURL,
-  };
-
-  const identifier = metadata.identifier ?? app.bundleIdentifier;
-  const name = metadata.name ?? app.name;
-  const iconURL = metadata.iconURL ?? app.iconURL;
-
   return {
-    name,
-    identifier,
-    iconURL,
-    featuredApps: [app.bundleIdentifier],
     ...metadata,
-    apps: [validApp],
+    apps: [{ ...app, versions, downloadURL: versions[0]?.downloadURL }],
   };
 }
 
-export function buildReleaseNews(
-  app: SourceApp,
-  releases: SourceVersion[],
-  tintColor?: string,
-  imageURL?: string,
-  website?: string,
-): SourceNews[] {
+export function buildReleaseNews(app: SourceApp, releases: SourceVersion[], tintColor?: string, imageURL?: string, website?: string): SourceNews[] {
   return releases.slice(0, 5).map(release => ({
     title: `${app.name} v${release.version} Released`,
     identifier: `${app.bundleIdentifier}-${release.version}-release`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
