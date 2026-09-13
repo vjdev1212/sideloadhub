@@ -1,28 +1,40 @@
 # SideloadHub
 
-SideloadHub is a centralized catalog for iOS apps distributed through public GitHub releases. It tracks releases and IPA assets as metadata and exposes an AltStore/SideStore-compatible source.
+SideloadHub is a centralized catalog for iOS apps distributed through public GitHub releases. It tracks release and IPA metadata without storing IPA binaries. Each imported repository gets its own AltStore/SideStore feed with the five newest valid versions.
 
 ## Free-tier deployment
 
 The recommended $0 setup is:
 
 - **Vercel Hobby** for the Next.js application
-- **Supabase Free** for PostgreSQL
+- **Neon Free** for PostgreSQL
 - **GitHub Actions** for the 15-minute sync fallback
 - **GitHub webhooks** for near-immediate release updates
-
-Supabase Free currently includes a 500 MB Postgres database, 5 GB egress, and 1 GB file storage. Free projects can pause after inactivity, so keeping the GitHub sync workflow enabled is useful. Vercel Hobby supports a native daily cron, while the repository's GitHub Actions workflow handles more frequent syncs without requiring Vercel Pro.
+- **GitHub Releases** as the binary host
 
 ### Vercel
 
 1. Import this GitHub repository into Vercel.
 2. Add the environment variables from `.env.example`.
-3. Deploy.
-4. Keep the generated Vercel URL for the GitHub Actions `SITE_URL` variable.
+3. Deploy with the repository root as the Root Directory.
+4. Use `npx prisma generate && npx prisma db push && next build` as the initial Build Command.
 
-### Supabase
+### Neon
 
-Create one Free project and use its Postgres connection URLs for `DATABASE_URL` and `DIRECT_URL`.
+Create one Neon project and use its PostgreSQL connection string for `DATABASE_URL` and `DIRECT_URL`. No application tables need to be created manually; Prisma creates them from `prisma/schema.prisma` during the initial deployment.
+
+### GitHub token and webhook
+
+`GITHUB_TOKEN` is recommended for higher GitHub API limits.
+
+Configure a webhook on each tracked repository:
+
+- Payload URL: `https://YOUR_DOMAIN/api/webhooks/github`
+- Content type: `application/json`
+- Secret: the same `GITHUB_WEBHOOK_SECRET` configured on Vercel
+- Events: **Release**
+
+A published release can therefore update SideloadHub immediately, while GitHub Actions provides a periodic fallback.
 
 ### GitHub Actions sync
 
@@ -31,18 +43,7 @@ In the SideloadHub repository settings, create:
 - Repository variable `SITE_URL` = your deployed Vercel URL, without a trailing slash.
 - Repository secret `CRON_SECRET` = the same value configured on Vercel.
 
-The workflow in `.github/workflows/sync.yml` calls `/api/cron/sync` every 15 minutes. Standard GitHub-hosted runners are free for public repositories.
-
-### GitHub webhook
-
-Configure a GitHub webhook on each tracked app repository:
-
-- Payload URL: `https://YOUR_DOMAIN/api/webhooks/github`
-- Content type: `application/json`
-- Secret: the same `GITHUB_WEBHOOK_SECRET` configured on Vercel
-- Events: **Release**
-
-A published release can therefore update SideloadHub immediately, while GitHub Actions provides a periodic fallback.
+The workflow in `.github/workflows/sync.yml` calls `/api/cron/sync` every 15 minutes.
 
 ## Stack
 
@@ -52,10 +53,17 @@ A published release can therefore update SideloadHub immediately, while GitHub A
 - GitHub REST API
 - Vercel server routes
 - GitHub Actions scheduler
+- Optional Google authentication via Auth.js
 
 ## Environment
 
-Copy `.env.example` to `.env.local` and configure PostgreSQL and optional GitHub/authentication secrets.
+Copy `.env.example` to `.env.local` and configure PostgreSQL, GitHub, webhook, cron, and optional Google authentication credentials.
+
+For Google sign-in, configure:
+
+- `AUTH_SECRET`
+- `AUTH_GOOGLE_ID`
+- `AUTH_GOOGLE_SECRET`
 
 ## Development
 
@@ -66,27 +74,34 @@ npx prisma db push
 npm run dev
 ```
 
-## Source
+## Repository feeds
 
-The public source endpoint is `/api/source.json`. It is intentionally generated server-side; IPA binaries are never stored by SideloadHub and download links point at the original GitHub release assets.
+Each tracked repository exposes its own AltStore/SideStore JSON feed:
 
-## Architecture
+`https://YOUR_DOMAIN/{repository_name}/altstore.json`
 
-GitHub imports and synchronization belong in server-side services. The database is the cache of record, so normal frontend requests do not query GitHub. Source generation validates records before inclusion so a broken repository cannot invalidate the complete catalog.
+For example:
 
-## Current deployment model
+`https://sideloadhub.vercel.app/itorrent/altstore.json`
 
-Release flow:
+The feed contains only that repository's app and at most its five newest valid versions. IPA `downloadURL` values point directly to GitHub release assets; SideloadHub does not store or proxy IPA binaries.
 
-`GitHub release -> webhook -> SideloadHub sync -> PostgreSQL -> AltStore/SideStore source`
+The app details page also shows a **Download IPA** button for every available IPA asset in version history.
+
+## Catalog behavior
+
+The homepage shows:
+
+- the **10 newest repositories**
+- **Top Starred Apps** based on community ratings
+- a single **Add Repository** action
+
+There is no global source page and no approval queue. Importing a valid public GitHub repository makes it eligible for the catalog immediately.
+
+## Release flow
+
+`GitHub release -> webhook -> SideloadHub sync -> PostgreSQL -> repository-specific altstore.json`
 
 Fallback flow:
 
-`GitHub Actions -> /api/cron/sync -> PostgreSQL -> source`
-
-## Remaining production work
-
-- protected admin dashboard and approval UI
-- additional source-health tooling
-- automated integration tests
-- final SEO/accessibility hardening
+`GitHub Actions -> /api/cron/sync -> PostgreSQL -> repository-specific altstore.json`
