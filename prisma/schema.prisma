@@ -28,6 +28,7 @@ model App {
   lastSyncedAt         DateTime?
   repositories         AppRepository[]
   releases             Release[]
+  ratings              AppRating[]
 
   @@index([bundleId])
   @@index([enabled, featured])
@@ -51,6 +52,7 @@ model Repository {
 
   @@index([owner, repository])
   @@index([syncStatus])
+  @@index([createdAt])
 }
 
 model AppRepository {
@@ -109,10 +111,23 @@ model Submission {
   id           String   @id @default(cuid())
   githubUrl    String
   metadata     Json?
-  status       String   @default("PENDING")
+  status       String   @default("IMPORTED")
   rejectionReason String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@index([status, createdAt])
+}
+
+model AppRating {
+  id         String   @id @default(cuid())
+  appId      String
+  userKey    String
+  rating     Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  app        App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, userKey])
+  @@index([appId, rating])
 }
