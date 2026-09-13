@@ -66,19 +66,34 @@ const COMMON_ICON_PATHS = [
   ".github/assets/icon.png", ".github/icon.png",
 ];
 
-export async function getRepositoryIcon(owner: string, repository: string, branch: string, configuredIcon?: unknown) {
-  if (typeof configuredIcon === "string" && configuredIcon.startsWith("https://")) return configuredIcon;
-  for (const path of COMMON_ICON_PATHS) {
+const COMMON_HEADER_PATHS = [
+  "assets/banners/header.png", "assets/banners/header.jpg", "assets/banners/header.jpeg", "assets/banners/header.webp",
+  "assets/banners/feature-graphic.png", "assets/banners/feature-graphic.jpg", "assets/banners/feature-graphic.jpeg", "assets/banners/feature-graphic.webp",
+  "assets/banners/Strmify-feature-graphic.png", "assets/header.png", "assets/header.jpg", "assets/header.jpeg", "assets/header.webp",
+  ".github/assets/header.png", ".github/header.png",
+];
+
+export async function getRepositoryAsset(owner: string, repository: string, branch: string, paths: string[], configured?: unknown) {
+  if (typeof configured === "string" && configured.startsWith("https://")) return configured;
+  for (const path of paths) {
     try {
       const file = await githubFetch<GitHubContent>(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/contents/${path}?ref=${encodeURIComponent(branch)}`);
       if (file.type === "file") {
-        return `https://raw.githubusercontent.com/${owner}/${repository}/refs/heads/${branch}/${file.path.split("/").map(encodeURIComponent).join("/")}`;
+        return `https://raw.githubusercontent.com/${owner}/${repository}/refs/heads/${encodeURIComponent(branch)}/${file.path.split("/").map(encodeURIComponent).join("/")}`;
       }
     } catch {
-      // Try the next conventional repository icon path.
+      // Try the next conventional repository asset path.
     }
   }
   return null;
+}
+
+export function getRepositoryIcon(owner: string, repository: string, branch: string, configuredIcon?: unknown) {
+  return getRepositoryAsset(owner, repository, branch, COMMON_ICON_PATHS, configuredIcon);
+}
+
+export function getRepositoryHeader(owner: string, repository: string, branch: string, configuredHeader?: unknown) {
+  return getRepositoryAsset(owner, repository, branch, COMMON_HEADER_PATHS, configuredHeader);
 }
 
 export function isIpaAsset(name: string) { return name.toLowerCase().endsWith(".ipa"); }
