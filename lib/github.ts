@@ -8,6 +8,7 @@ const repositorySchema = z.object({
 export type GitHubRepository = z.infer<typeof repositorySchema>;
 export type GitHubAsset = { id: number; name: string; browser_download_url: string; size: number; content_type: string | null };
 export type GitHubRelease = { id: number; tag_name: string; name: string | null; body: string | null; published_at: string | null; created_at: string; prerelease: boolean; draft: boolean; assets: GitHubAsset[] };
+type GitHubContent = { name: string; path: string; type: "file" | "dir" };
 
 export function parseGitHubRepositoryUrl(input: string) {
   const url = new URL(input.trim());
@@ -55,6 +56,29 @@ export async function getAltStoreConfig(owner: string, repository: string, branc
     if (!data.content) return null;
     return JSON.parse(Buffer.from(data.content, data.encoding === "base64" ? "base64" : "utf8").toString("utf8")) as Record<string, unknown>;
   } catch { return null; }
+}
+
+const COMMON_ICON_PATHS = [
+  "assets/images/icon.png", "assets/images/icon.jpg", "assets/images/icon.jpeg", "assets/images/icon.webp",
+  "assets/icon.png", "assets/icon.jpg", "assets/icon.jpeg", "assets/icon.webp",
+  "icon.png", "icon.jpg", "icon.jpeg", "icon.webp",
+  "Resources/icon.png", "Resources/icon.jpg", "resources/icon.png", "resources/icon.jpg",
+  ".github/assets/icon.png", ".github/icon.png",
+];
+
+export async function getRepositoryIcon(owner: string, repository: string, branch: string, configuredIcon?: unknown) {
+  if (typeof configuredIcon === "string" && configuredIcon.startsWith("https://")) return configuredIcon;
+  for (const path of COMMON_ICON_PATHS) {
+    try {
+      const file = await githubFetch<GitHubContent>(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/contents/${path}?ref=${encodeURIComponent(branch)}`);
+      if (file.type === "file") {
+        return `https://raw.githubusercontent.com/${owner}/${repository}/refs/heads/${branch}/${file.path.split("/").map(encodeURIComponent).join("/")}`;
+      }
+    } catch {
+      // Try the next conventional repository icon path.
+    }
+  }
+  return null;
 }
 
 export function isIpaAsset(name: string) { return name.toLowerCase().endsWith(".ipa"); }
