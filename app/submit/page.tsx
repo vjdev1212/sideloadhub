@@ -2,21 +2,40 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function SubmitPage() {
+  const router = useRouter();
   const [githubUrl, setGithubUrl] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setMessage("");
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+
     try {
-      const response = await fetch("/api/submissions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ githubUrl }) });
+      const response = await fetch("/api/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ githubUrl }),
+      });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Import failed");
-      setMessage(data.app ? "Repository imported. Its available IPA releases are now in the catalog." : "Repository imported."); setGithubUrl("");
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Import failed"); }
-    finally { setBusy(false); }
+
+      if (data.app?.slug) {
+        router.replace(`/apps/${encodeURIComponent(data.app.slug)}`);
+        return;
+      }
+
+      setMessage("Repository imported.");
+      setGithubUrl("");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Import failed");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return <main className="mx-auto min-h-screen max-w-3xl px-5 py-16 lg:px-8">
