@@ -32,7 +32,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const latest = app.releases[0];
   const repoName = app.repositories[0]?.repository.repository;
   const site = getRequestOrigin(await headers());
-  const altStoreUrl = repoName ? `${site}/${encodeURIComponent(repoName)}/altstore.json` : null;
+  const sourceUrl = repoName ? `${site}/${encodeURIComponent(repoName)}/source.json` : null;
 
   return <main className="mx-auto min-h-screen max-w-5xl px-5 py-12">
     <div className="flex items-center justify-between"><Link href="/apps" className="text-sm text-gray-500">← Apps</Link><Link href="/submit" className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-black">Add Repository</Link></div>
@@ -42,7 +42,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         <div className="min-w-0"><h1 className="text-4xl font-semibold">{app.name}</h1><p className="mt-2 text-gray-500">{app.developerName}</p><div className="mt-4"><RatingStars slug={app.slug} average={average} count={count} /></div><div className="mt-5 flex flex-wrap gap-2">{latest?.assets.map(asset => <a key={asset.id} href={asset.downloadUrl} target="_blank" rel="noreferrer" className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white dark:bg-white dark:text-black">Download IPA</a>)}<a href={app.githubRepositoryUrl} target="_blank" rel="noreferrer" className="rounded-full border border-black/10 px-5 py-2 text-sm font-semibold dark:border-white/10">GitHub</a></div></div>
       </div>
       {app.description && <p className="mt-7 leading-7 text-gray-600 dark:text-gray-300">{app.description}</p>}
-      {altStoreUrl && <SourceActions sourceUrl={altStoreUrl} />}
+      {sourceUrl && <SourceActions sourceUrl={sourceUrl} />}
     </div>
     <h2 className="mt-10 text-2xl font-semibold">Version history</h2>
     <div className="mt-4 space-y-3">{app.releases.map(r => <article key={r.id} className="rounded-2xl border border-black/10 p-5 dark:border-white/10"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><strong>v{r.version}</strong><span className="ml-3 text-sm text-gray-500">{r.publishedAt?.toLocaleDateString()}</span></div><div className="flex flex-wrap gap-2">{r.assets.map(asset => <a key={asset.id} href={asset.downloadUrl} target="_blank" rel="noreferrer" className="rounded-full border border-black/10 px-4 py-1.5 text-xs font-semibold dark:border-white/10">Download IPA</a>)}</div></div>{r.releaseNotes && <p className="mt-3 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">{r.releaseNotes}</p>}</article>)}</div>
