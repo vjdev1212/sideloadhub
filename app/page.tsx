@@ -1,14 +1,16 @@
 import Link from "next/link";
+import { db } from "@/lib/db";
 
 const categories = ["Media", "Utilities", "Social", "Productivity", "Games", "Development", "Customization", "Education"];
 
-const demoApps = [
-  { name: "Example Player", developer: "Independent Developer", version: "1.4.2", category: "Media", icon: "▶" },
-  { name: "Pocket Tools", developer: "Open Source Team", version: "2.1.0", category: "Utilities", icon: "✦" },
-  { name: "Focus Desk", developer: "Studio North", version: "3.0.1", category: "Productivity", icon: "◒" },
-];
+export default async function Home() {
+  const featuredApps = await db.app.findMany({
+    where: { enabled: true, featured: true },
+    orderBy: { updatedAt: "desc" },
+    take: 6,
+    include: { releases: { where: { assets: { some: {} } }, orderBy: { publishedAt: "desc" }, take: 1, include: { assets: true } } },
+  });
 
-export default function Home() {
   return (
     <main className="min-h-screen">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
@@ -36,9 +38,26 @@ export default function Home() {
 
       <section className="mx-auto max-w-7xl px-5 pb-20 lg:px-8">
         <div className="mb-6 flex items-end justify-between"><div><p className="text-sm font-medium text-blue-600">Explore</p><h2 className="mt-1 text-3xl font-semibold tracking-tight">Featured Apps</h2></div><Link href="/apps" className="text-sm font-medium text-gray-500">View all →</Link></div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {demoApps.map((app) => <article key={app.name} className="rounded-3xl border border-black/10 bg-white/80 p-5 shadow-sm backdrop-blur transition hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-white/[.04]"><div className="flex items-start gap-4"><div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-gray-100 text-2xl dark:bg-white/10">{app.icon}</div><div className="min-w-0"><h3 className="font-semibold">{app.name}</h3><p className="mt-1 text-sm text-gray-500">{app.developer}</p><span className="mt-3 inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-white/10">{app.category}</span></div></div><div className="mt-6 flex justify-between border-t border-black/5 pt-4 text-sm dark:border-white/10"><span className="text-gray-500">Latest version</span><strong>{app.version}</strong></div></article>)}
-        </div>
+        {featuredApps.length ? (
+          <div className="grid gap-4 md:grid-cols-3">
+            {featuredApps.map((app) => {
+              const release = app.releases[0];
+              return <Link href={`/apps/${app.slug}`} key={app.id} className="rounded-3xl border border-black/10 bg-white/80 p-5 shadow-sm backdrop-blur transition hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-white/[.04]">
+                <div className="flex items-start gap-4">
+                  {app.iconUrl ? <img src={app.iconUrl} alt="" className="h-16 w-16 shrink-0 rounded-2xl object-cover" /> : <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-gray-100 text-2xl dark:bg-white/10">{app.name.slice(0, 1).toUpperCase()}</div>}
+                  <div className="min-w-0"><h3 className="font-semibold">{app.name}</h3><p className="mt-1 text-sm text-gray-500">{app.developerName}</p><span className="mt-3 inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-white/10">{app.category}</span></div>
+                </div>
+                <div className="mt-6 flex justify-between border-t border-black/5 pt-4 text-sm dark:border-white/10"><span className="text-gray-500">Latest version</span><strong>{release?.version ?? "—"}</strong></div>
+              </Link>;
+            })}
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-dashed border-black/10 bg-white/60 px-6 py-14 text-center dark:border-white/10 dark:bg-white/[.03]">
+            <h3 className="text-xl font-semibold">No apps yet</h3>
+            <p className="mx-auto mt-2 max-w-lg text-sm text-gray-500">Add a public GitHub repository to start importing real iOS releases into SideloadHub.</p>
+            <Link href="/submit" className="mt-6 inline-flex rounded-full bg-black px-5 py-3 text-sm font-semibold text-white dark:bg-white dark:text-black">Add Repository</Link>
+          </div>
+        )}
       </section>
 
       <section className="border-y border-black/5 bg-white/50 dark:border-white/5 dark:bg-white/[.02]"><div className="mx-auto max-w-7xl px-5 py-14 lg:px-8"><h2 className="text-2xl font-semibold">Browse by category</h2><div className="mt-6 flex flex-wrap gap-2">{categories.map(c => <Link key={c} href={`/categories/${c.toLowerCase()}`} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm hover:border-black/20 dark:border-white/10 dark:bg-white/5">{c}</Link>)}</div></div></section>
