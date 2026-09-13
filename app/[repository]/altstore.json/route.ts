@@ -6,7 +6,7 @@ import { buildAltStoreSource, buildReleaseNews, type SourceApp, type SourceVersi
 export const dynamic = "force-dynamic";
 
 const DEFAULT_TINT = "#007AFF";
-const DEFAULT_MIN_OS = "15.0";
+const DEFAULT_MIN_OS = "26.0";
 
 function asString(config: Record<string, unknown>, key: string) {
   return typeof config[key] === "string" && config[key].trim() ? config[key].trim() : undefined;
@@ -59,13 +59,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
   const headerFromRepo = await getRepositoryHeader(repo.owner, repo.repository, repo.branch || "main", config.headerURL);
   const headerURL = headerFromRepo || iconURL;
   const website = asString(config, "website") || app.developerWebsite || app.githubRepositoryUrl;
-  const subtitle = asString(config, "subtitle") || `${app.name} - ${app.developerName}`;
-  const description = asString(config, "description") || app.description || `${app.name} is an iOS application distributed through GitHub releases.`;
+  const aboutText = app.description?.trim() || "";
+  const subtitle = aboutText || asString(config, "subtitle") || app.name;
+  const description = aboutText || asString(config, "description") || `${app.name} is an iOS application distributed through GitHub releases.`;
   const tintColor = asString(config, "tintColor") || DEFAULT_TINT;
   const category = asString(config, "category") || "utilities";
   const configuredScreenshots = asStringArray(config, "screenshots");
   const screenshots = configuredScreenshots.length ? configuredScreenshots : [iconURL];
-  const minOSVersion = asString(config, "minOSVersion") || asString(config, "minimumOSVersion") || DEFAULT_MIN_OS;
+  const minOSVersion = DEFAULT_MIN_OS;
 
   const versions: SourceVersion[] = app.releases.flatMap(release => {
     const asset = release.assets.find(candidate => /^https:\/\//i.test(candidate.downloadUrl));
