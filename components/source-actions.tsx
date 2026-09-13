@@ -6,8 +6,7 @@ type Props = { sourceUrl: string };
 
 export function SourceActions({ sourceUrl }: Props) {
   const [copied, setCopied] = useState(false);
-  const normalizedSourceUrl = sourceUrl.replace(/\/altstore\.json(?:$|\?)/i, "/source.json$&".endsWith("$&") ? "" : "");
-  const feedUrl = /\/altstore\.json(?:$|\?)/i.test(sourceUrl)
+  const feedUrl = /\/altstore\.json(?=$|\?)/i.test(sourceUrl)
     ? sourceUrl.replace(/\/altstore\.json(?=$|\?)/i, "/source.json")
     : sourceUrl;
 
