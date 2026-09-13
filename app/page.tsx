@@ -37,9 +37,7 @@ export default async function Home() {
     orderBy: [{ _count: { rating: "desc" } }, { _avg: { rating: "desc" } }],
     take: 6,
   });
-  const topApps = topRatingGroups.length
-    ? await db.app.findMany({ where: { id: { in: topRatingGroups.map(r => r.appId) }, enabled: true } })
-    : [];
+  const topApps = topRatingGroups.length ? await db.app.findMany({ where: { id: { in: topRatingGroups.map(r => r.appId) }, enabled: true } }) : [];
   const topAppMap = new Map(topApps.map(app => [app.id, app]));
 
   return (
@@ -66,20 +64,18 @@ export default async function Home() {
               const app = repo.apps[0]?.app;
               const release = app?.releases[0];
               const rating = app ? ratingMap.get(app.id) : undefined;
-              return (
-                <Link href={app ? `/apps/${app.slug}` : `/submit`} key={repo.id} className="rounded-3xl border border-black/10 bg-white/80 p-5 shadow-sm backdrop-blur transition hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-white/[.04]">
+              return <article key={repo.id} className="rounded-3xl border border-black/10 bg-white/80 p-5 shadow-sm backdrop-blur transition hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-white/[.04]">
+                <Link href={app ? `/apps/${app.slug}` : `/submit`} className="block">
                   <div className="flex items-start gap-4">
                     <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gray-100 text-2xl dark:bg-white/10">{app?.iconUrl ? <img src={app.iconUrl} alt="" className="h-full w-full object-cover" /> : <span>{app?.name?.slice(0, 1).toUpperCase() ?? "✦"}</span>}</div>
                     <div className="min-w-0"><h3 className="truncate font-semibold">{app?.name ?? repo.repository}</h3><p className="truncate text-sm text-gray-500">github.com/{repo.owner}/{repo.repository}</p>{release && <p className="mt-2 text-xs text-gray-500">Latest v{release.version}</p>}</div>
                   </div>
-                  {app && rating && <div className="mt-5"><RatingStars slug={app.slug} average={rating.average} count={rating.count} /></div>}
                 </Link>
-              );
+                {app && rating && <div className="mt-5"><RatingStars slug={app.slug} average={rating.average} count={rating.count} /></div>}
+              </article>;
             })}
           </div>
-        ) : (
-          <div className="rounded-3xl border border-dashed border-black/10 px-6 py-14 text-center dark:border-white/10"><h3 className="text-xl font-semibold">No repositories yet</h3><p className="mx-auto mt-2 max-w-lg text-sm text-gray-500">Add the first public GitHub repository to build the catalog.</p></div>
-        )}
+        ) : <div className="rounded-3xl border border-dashed border-black/10 px-6 py-14 text-center dark:border-white/10"><h3 className="text-xl font-semibold">No repositories yet</h3><p className="mx-auto mt-2 max-w-lg text-sm text-gray-500">Add the first public GitHub repository to build the catalog.</p></div>}
       </section>
 
       <section className="mx-auto max-w-7xl px-5 pb-20 lg:px-8">
@@ -89,7 +85,7 @@ export default async function Home() {
             {topRatingGroups.map(group => {
               const app = topAppMap.get(group.appId);
               if (!app) return null;
-              return <Link href={`/apps/${app.slug}`} key={app.id} className="rounded-3xl border border-black/10 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-white/[.04]"><div className="flex items-center gap-4"><div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gray-100 dark:bg-white/10">{app.iconUrl ? <img src={app.iconUrl} alt="" className="h-full w-full object-cover" /> : "✦"}</div><div className="min-w-0"><h3 className="truncate font-semibold">{app.name}</h3><p className="truncate text-sm text-gray-500">{app.developerName}</p></div></div><div className="mt-5"><RatingStars slug={app.slug} average={group._avg.rating ?? 0} count={group._count.rating} /></div></Link>;
+              return <article key={app.id} className="rounded-3xl border border-black/10 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-white/[.04]"><Link href={`/apps/${app.slug}`} className="block"><div className="flex items-center gap-4"><div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gray-100 dark:bg-white/10">{app.iconUrl ? <img src={app.iconUrl} alt="" className="h-full w-full object-cover" /> : "✦"}</div><div className="min-w-0"><h3 className="truncate font-semibold">{app.name}</h3><p className="truncate text-sm text-gray-500">{app.developerName}</p></div></div></Link><div className="mt-5"><RatingStars slug={app.slug} average={group._avg.rating ?? 0} count={group._count.rating} /></div></article>;
             })}
           </div>
         ) : <div className="rounded-3xl border border-dashed border-black/10 px-6 py-12 text-center text-sm text-gray-500 dark:border-white/10">Ratings will appear here as users review apps.</div>}
