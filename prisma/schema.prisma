@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model App {
+  id                   String          @id @default(cuid())
+  slug                 String          @unique
+  name                 String
+  bundleId             String
+  developerName        String
+  developerWebsite     String?
+  description          String?
+  iconUrl              String?
+  category             String          @default("Other")
+  githubRepositoryUrl  String
+  githubOwner          String
+  githubRepository     String
+  enabled              Boolean         @default(true)
+  featured             Boolean         @default(false)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  lastSyncedAt         DateTime?
+  repositories         AppRepository[]
+  releases             Release[]
+
+  @@index([bundleId])
+  @@index([enabled, featured])
+  @@index([updatedAt])
+}
+
+model Repository {
+  id            String          @id @default(cuid())
+  githubUrl     String          @unique
+  owner         String
+  repository    String
+  branch        String?
+  enabled       Boolean         @default(true)
+  syncStatus    String          @default("PENDING")
+  lastSyncAt    DateTime?
+  lastSyncError String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  apps          AppRepository[]
+  releases      Release[]
+
+  @@index([owner, repository])
+  @@index([syncStatus])
+}
+
+model AppRepository {
+  id           String     @id @default(cuid())
+  appId        String
+  repositoryId String
+  path         String?
+  configuration Json?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  app          App        @relation(fields: [appId], references: [id], onDelete: Cascade)
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, repositoryId])
+}
+
+model Release {
+  id              String       @id @default(cuid())
+  appId           String
+  repositoryId    String
+  githubReleaseId BigInt
+  tagName         String
+  version         String
+  releaseName     String?
+  releaseNotes    String?
+  publishedAt     DateTime?
+  prerelease      Boolean      @default(false)
+  draft           Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  app             App          @relation(fields: [appId], references: [id], onDelete: Cascade)
+  repository      Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  assets          IpaAsset[]
+
+  @@unique([repositoryId, githubReleaseId])
+  @@index([appId, publishedAt])
+  @@index([version])
+}
+
+model IpaAsset {
+  id            String   @id @default(cuid())
+  releaseId     String
+  githubAssetId BigInt
+  fileName      String
+  downloadUrl   String
+  size          BigInt?
+  contentType   String?
+  createdAt     DateTime @default(now())
+  release       Release  @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@unique([releaseId, githubAssetId])
+  @@index([releaseId])
+}
+
+model Submission {
+  id           String   @id @default(cuid())
+  githubUrl    String
+  metadata     Json?
+  status       String   @default("PENDING")
+  rejectionReason String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
