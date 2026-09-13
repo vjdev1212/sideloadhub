@@ -17,7 +17,10 @@ export async function syncRepository(repositoryId: string) {
     const description = typeof config?.description === "string" ? config.description : repo.description || extractDescription(readme);
     const bundleId = typeof config?.bundleIdentifier === "string" ? config.bundleIdentifier : `com.sideloadhub.${slugify(repo.owner)}.${slugify(repo.name)}`;
     const category = typeof config?.category === "string" ? config.category : "Other";
-    const iconUrl = typeof config?.iconURL === "string" && config.iconURL.startsWith("https://") ? config.iconURL : null;
+    const configuredIcon = typeof config?.iconURL === "string" && config.iconURL.startsWith("https://") ? config.iconURL : null;
+    // AltStore-compatible feeds require an iconURL. Prefer developer-provided metadata;
+    // otherwise use the public GitHub owner avatar as a stable HTTPS fallback.
+    const iconUrl = configuredIcon ?? `https://github.com/${encodeURIComponent(repo.owner)}.png?size=512`;
     const slug = `${slugify(name)}-${slugify(repo.owner)}-${slugify(repo.name)}`.slice(0, 100);
     const app = await db.app.upsert({ where: { slug }, update: { name, bundleId, developerName, description, iconUrl, category, githubRepositoryUrl: repo.html_url, githubOwner: repo.owner, githubRepository: repo.repository, lastSyncedAt: new Date() }, create: { slug, name, bundleId, developerName, description, iconUrl, category, githubRepositoryUrl: repo.html_url, githubOwner: repo.owner, githubRepository: repo.repository, lastSyncedAt: new Date() } });
     const configuration = config ? JSON.parse(JSON.stringify(config)) : undefined;
