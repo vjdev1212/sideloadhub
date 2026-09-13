@@ -21,7 +21,7 @@ export default function SubmitPage() {
 
   return <main className="mx-auto min-h-screen max-w-3xl px-5 py-16 lg:px-8">
     <Link href="/" className="text-sm text-gray-500">← SideloadHub</Link>
-    <div className="mt-12"><p className="text-sm font-medium text-blue-600">Repository import</p><h1 className="mt-2 text-5xl font-semibold tracking-tight">Add a GitHub repository.</h1><p className="mt-5 text-lg text-gray-600 dark:text-gray-300">We’ll inspect its public releases and IPA assets, then add eligible releases directly to the catalog and source.</p></div>
+    <div className="mt-12"><p className="text-sm font-medium text-blue-600">Repository import</p><h1 className="mt-2 text-5xl font-semibold tracking-tight">Add a GitHub repository.</h1><p className="mt-5 text-lg text-gray-600 dark:text-gray-300">We’ll inspect its public releases and IPA assets, then add eligible releases directly to the catalog.</p></div>
     <form onSubmit={submit} className="mt-10 rounded-3xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[.04] sm:p-8">
       <label className="text-sm font-medium">Public GitHub repository URL</label>
       <input value={githubUrl} onChange={e => setGithubUrl(e.target.value)} required placeholder="https://github.com/developer/app" className="mt-3 w-full rounded-2xl border border-black/10 bg-transparent px-4 py-3 outline-none ring-0 dark:border-white/10" />
