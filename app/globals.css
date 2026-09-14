@@ -1,30 +1,14 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f7f8fb;
-  --foreground: #101114;
-  --muted: #6b7280;
-  --card: rgba(255,255,255,.86);
-  --border: rgba(17,24,39,.09);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #090a0d;
-    --foreground: #f5f7fa;
-    --muted: #9ca3af;
-    --card: rgba(20,22,28,.86);
-    --border: rgba(255,255,255,.1);
-  }
-}
-
+:root { --background: #f7f8fb; --foreground: #101114; --muted: #6b7280; --card: rgba(255,255,255,.88); --border: rgba(17,24,39,.09); }
+@media (prefers-color-scheme: dark) { :root { --background: #090a0d; --foreground: #f5f7fa; --muted: #9ca3af; --card: rgba(20,22,28,.9); --border: rgba(255,255,255,.1); } }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; min-width: 320px; background: var(--background); color: var(--foreground); font-family: Arial, Helvetica, sans-serif; padding-bottom: env(safe-area-inset-bottom); }
 a { text-decoration: none; }
+button, a, input { touch-action: manipulation; }
 ::selection { background: rgba(59,130,246,.2); }
+.app-shell { min-height: 100dvh; padding-bottom: 92px; }
+.mobile-nav { display: block; }
+@media (min-width: 768px) { .app-shell { padding-bottom: 0; } .mobile-nav { display: none; } }
+@media (max-width: 767px) { h1 { text-wrap: balance; } input, button { font-size: 16px; } }
