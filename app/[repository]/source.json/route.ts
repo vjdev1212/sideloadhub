@@ -18,9 +18,8 @@ function asStringArray(config: Record<string, unknown>, key: string) {
     : [];
 }
 
-function feedIdentifier(repositoryName: string) {
-  const safe = repositoryName.toLowerCase().trim().replace(/[^a-z0-9.-]+/g, "-").replace(/^-|-$/g, "") || "app";
-  return `com.sideloadhub.${safe}`;
+function safePart(value: string) {
+  return value.toLowerCase().trim().replace(/\.ipa$/i, "").replace(/[^a-z0-9.-]+/g, "-").replace(/^-|-$/g, "") || "app";
 }
 
 function today() {
@@ -41,86 +40,104 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
           },
         },
         orderBy: { createdAt: "asc" },
-        take: 1,
       },
     },
   });
 
-  const appLink = repo?.apps[0];
-  const app = appLink?.app;
-  if (!app || !repo) return NextResponse.json({ error: "Repository not found" }, { status: 404 });
+  if (!repo || repo.apps.length === 0) {
+    return NextResponse.json({ error: "Repository not found" }, { status: 404 });
+  }
 
-  const config = appLink.configuration && typeof appLink.configuration === "object" && !Array.isArray(appLink.configuration)
-    ? appLink.configuration as Record<string, unknown>
-    : {};
+  const repositoryApps: SourceApp[] = [];
+  const allNews = [];
 
-  const identifier = feedIdentifier(repo.repository);
-  const iconURL = asString(config, "iconURL") || app.iconUrl || `https://raw.githubusercontent.com/${repo.owner}/${repo.repository}/${repo.branch || "main"}/icon.png`;
-  const headerFromRepo = await getRepositoryHeader(repo.owner, repo.repository, repo.branch || "main", config.headerURL);
-  const headerURL = headerFromRepo || iconURL;
-  const website = asString(config, "website") || app.developerWebsite || app.githubRepositoryUrl;
-  const aboutText = app.description?.trim() || "";
-  const subtitle = aboutText || asString(config, "subtitle") || app.name;
-  const description = aboutText || asString(config, "description") || `${app.name} is an iOS application distributed through GitHub releases.`;
-  const tintColor = asString(config, "tintColor") || DEFAULT_TINT;
-  const category = asString(config, "category") || "utilities";
-  const configuredScreenshots = asStringArray(config, "screenshots");
-  const screenshots = configuredScreenshots.length ? configuredScreenshots : [iconURL];
-  const minOSVersion = DEFAULT_MIN_OS;
+  for (const appLink of repo.apps) {
+    const app = appLink.app;
+    const config = appLink.configuration && typeof appLink.configuration === "object" && !Array.isArray(appLink.configuration)
+      ? appLink.configuration as Record<string, unknown>
+      : {};
 
-  const versions: SourceVersion[] = app.releases.flatMap(release => {
-    const asset = release.assets.find(candidate => /^https:\/\//i.test(candidate.downloadUrl));
-    if (!asset) return [];
-    return [{
-      version: release.version || "1.0.0",
-      date: release.publishedAt?.toISOString() || today(),
-      downloadURL: asset.downloadUrl,
-      size: asset.size ? Number(asset.size) : 0,
-      localizedDescription: release.releaseNotes?.trim() || `Version ${release.version || "1.0.0"} release.`,
-      minOSVersion,
-    }];
-  });
+    const iconURL = asString(config, "iconURL") || app.iconUrl || `https://raw.githubusercontent.com/${repo.owner}/${repo.repository}/${repo.branch || "main"}/icon.png`;
+    const headerFromRepo = await getRepositoryHeader(repo.owner, repo.repository, repo.branch || "main", config.headerURL);
+    const headerURL = headerFromRepo || iconURL;
+    const website = asString(config, "website") || app.developerWebsite || app.githubRepositoryUrl;
+    const aboutText = app.description?.trim() || "";
+    const subtitle = aboutText || asString(config, "subtitle") || app.name;
+    const description = aboutText || asString(config, "description") || `${app.name} is an iOS application distributed through GitHub releases.`;
+    const tintColor = asString(config, "tintColor") || DEFAULT_TINT;
+    const category = asString(config, "category") || "utilities";
+    const configuredScreenshots = asStringArray(config, "screenshots");
+    const screenshots = configuredScreenshots.length ? configuredScreenshots : [iconURL];
+    const minOSVersion = DEFAULT_MIN_OS;
 
-  const latestDownloadURL = versions[0]?.downloadURL || website;
-  const configuredPermissions = config.appPermissions && typeof config.appPermissions === "object" && !Array.isArray(config.appPermissions)
-    ? config.appPermissions as { entitlements?: unknown; privacy?: unknown }
-    : {};
+    const assetsByName = new Map<string, { fileName: string; versions: SourceVersion[] }>();
+    for (const release of app.releases) {
+      for (const asset of release.assets) {
+        if (!/^https:\/\//i.test(asset.downloadUrl) || !/\.ipa$/i.test(asset.fileName)) continue;
+        const key = asset.fileName.toLowerCase();
+        const entry = assetsByName.get(key) || { fileName: asset.fileName, versions: [] };
+        entry.versions.push({
+          version: release.version || "1.0.0",
+          date: release.publishedAt?.toISOString() || today(),
+          downloadURL: asset.downloadUrl,
+          size: asset.size ? Number(asset.size) : 0,
+          localizedDescription: release.releaseNotes?.trim() || `Version ${release.version || "1.0.0"} release.`,
+          minOSVersion,
+        });
+        assetsByName.set(key, entry);
+      }
+    }
 
-  const sourceApp: SourceApp = {
-    name: app.name,
-    bundleIdentifier: identifier,
-    developerName: app.developerName || repo.owner,
-    subtitle,
-    localizedDescription: description,
-    iconURL,
-    headerURL,
-    website,
-    tintColor,
-    category,
-    screenshots,
-    downloadURL: latestDownloadURL,
-    versions,
-    appPermissions: {
-      entitlements: Array.isArray(configuredPermissions.entitlements)
-        ? configuredPermissions.entitlements.filter((value): value is string => typeof value === "string")
-        : [],
-      privacy: Array.isArray(configuredPermissions.privacy)
-        ? configuredPermissions.privacy.filter((value): value is string => typeof value === "string")
-        : [],
-    },
-  };
+    const assets = [...assetsByName.values()];
+    for (const entry of assets) {
+      const versions = entry.versions.sort((a, b) => b.date.localeCompare(a.date));
+      const variant = assets.length > 1 ? ` — ${entry.fileName.replace(/\.ipa$/i, "")}` : "";
+      const baseIdentifier = app.bundleId?.trim() || `com.sideloadhub.${safePart(repo.repository)}`;
+      const identifier = assets.length > 1
+        ? `${baseIdentifier}.${safePart(entry.fileName)}`
+        : baseIdentifier;
 
-  const source = buildAltStoreSource(sourceApp, {
-    name: app.name,
-    identifier,
-    subtitle,
-    description,
-    iconURL,
-    headerURL,
-    website,
-    tintColor,
-    featuredApps: [identifier],
-    news: buildReleaseNews(sourceApp, versions, tintColor, headerURL, `${repo.githubUrl.replace(/\/$/, "")}/releases`),
+      const sourceApp: SourceApp = {
+        name: `${app.name}${variant}`,
+        bundleIdentifier: identifier,
+        developerName: app.developerName || repo.owner,
+        subtitle,
+        localizedDescription: description,
+        iconURL,
+        headerURL,
+        website,
+        tintColor,
+        category,
+        screenshots,
+        downloadURL: versions[0]?.downloadURL || website,
+        versions,
+        appPermissions: {
+          entitlements: Array.isArray(config.appPermissions) ? config.appPermissions.filter((value): value is string => typeof value === "string") : [],
+          privacy: [],
+        },
+      };
+
+      repositoryApps.push(sourceApp);
+      allNews.push(...buildReleaseNews(sourceApp, versions, tintColor, headerURL, `${repo.githubUrl.replace(/\/$/, "")}/releases`));
+    }
+  }
+
+  if (repositoryApps.length === 0) {
+    return NextResponse.json({ error: "No IPA releases found" }, { status: 404 });
+  }
+
+  const primary = repositoryApps[0];
+  const source = buildAltStoreSource(repositoryApps, {
+    name: primary.name.split(" — ")[0],
+    identifier: `com.sideloadhub.${safePart(repo.repository)}`,
+    subtitle: primary.subtitle,
+    description: primary.localizedDescription,
+    iconURL: primary.iconURL,
+    headerURL: primary.headerURL,
+    website: primary.website,
+    tintColor: primary.tintColor,
+    featuredApps: repositoryApps.map(app => app.bundleIdentifier),
+    news: allNews.slice(0, 10),
   });
 
   return NextResponse.json(source, {
