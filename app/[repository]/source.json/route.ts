@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getRepositoryHeader } from "@/lib/github";
-import { buildAltStoreSource, buildReleaseNews, type SourceApp, type SourceVersion } from "@/lib/source";
+import { buildAltStoreSource, buildReleaseNews, type SourceApp, type SourceNews, type SourceVersion } from "@/lib/source";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +49,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
   }
 
   const repositoryApps: SourceApp[] = [];
-  const allNews = [];
+  const allNews: SourceNews[] = [];
 
   for (const appLink of repo.apps) {
     const app = appLink.app;
@@ -69,6 +69,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
     const configuredScreenshots = asStringArray(config, "screenshots");
     const screenshots = configuredScreenshots.length ? configuredScreenshots : [iconURL];
     const minOSVersion = DEFAULT_MIN_OS;
+
+    const permissions = config.appPermissions && typeof config.appPermissions === "object" && !Array.isArray(config.appPermissions)
+      ? config.appPermissions as { entitlements?: unknown; privacy?: unknown }
+      : {};
 
     const assetsByName = new Map<string, { fileName: string; versions: SourceVersion[] }>();
     for (const release of app.releases) {
@@ -93,9 +97,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
       const versions = entry.versions.sort((a, b) => b.date.localeCompare(a.date));
       const variant = assets.length > 1 ? ` — ${entry.fileName.replace(/\.ipa$/i, "")}` : "";
       const baseIdentifier = app.bundleId?.trim() || `com.sideloadhub.${safePart(repo.repository)}`;
-      const identifier = assets.length > 1
-        ? `${baseIdentifier}.${safePart(entry.fileName)}`
-        : baseIdentifier;
+      const identifier = assets.length > 1 ? `${baseIdentifier}.${safePart(entry.fileName)}` : baseIdentifier;
 
       const sourceApp: SourceApp = {
         name: `${app.name}${variant}`,
@@ -112,8 +114,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
         downloadURL: versions[0]?.downloadURL || website,
         versions,
         appPermissions: {
-          entitlements: Array.isArray(config.appPermissions) ? config.appPermissions.filter((value): value is string => typeof value === "string") : [],
-          privacy: [],
+          entitlements: Array.isArray(permissions.entitlements)
+            ? permissions.entitlements.filter((value): value is string => typeof value === "string")
+            : [],
+          privacy: Array.isArray(permissions.privacy)
+            ? permissions.privacy.filter((value): value is string => typeof value === "string")
+            : [],
         },
       };
 
