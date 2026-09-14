@@ -21,6 +21,16 @@ function getRequestOrigin(headerStore: Headers) {
   return configured || "http://localhost:3000";
 }
 
+function DownloadIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 20h14" />
+    </svg>
+  );
+}
+
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const app = await db.app.findFirst({ where: { slug, enabled: true }, include: { repositories: { include: { repository: true }, take: 1 }, releases: { where: { draft: false }, include: { assets: true }, orderBy: { publishedAt: "desc" } } } });
@@ -39,12 +49,12 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     <div className="mt-10 rounded-3xl border border-black/10 p-7 dark:border-white/10">
       <div className="flex flex-col gap-6 sm:flex-row">
         <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-3xl bg-gray-100 dark:bg-white/10">{app.iconUrl ? <img src={app.iconUrl} alt="" className="h-full w-full object-cover" /> : "✦"}</div>
-        <div className="min-w-0"><h1 className="text-4xl font-semibold">{app.name}</h1><p className="mt-2 text-gray-500">{app.developerName}</p><div className="mt-4"><RatingStars slug={app.slug} average={average} count={count} /></div><div className="mt-5 flex flex-wrap gap-2">{latest?.assets.map(asset => <a key={asset.id} href={asset.downloadUrl} target="_blank" rel="noreferrer" className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white dark:bg-white dark:text-black">Download IPA</a>)}<a href={app.githubRepositoryUrl} target="_blank" rel="noreferrer" className="rounded-full border border-black/10 px-5 py-2 text-sm font-semibold dark:border-white/10">GitHub</a></div></div>
+        <div className="min-w-0"><h1 className="text-4xl font-semibold">{app.name}</h1><p className="mt-2 text-gray-500">{app.developerName}</p><div className="mt-4"><RatingStars slug={app.slug} average={average} count={count} /></div><div className="mt-5 flex flex-wrap gap-2">{latest?.assets.map(asset => <a key={asset.id} href={asset.downloadUrl} target="_blank" rel="noreferrer" title={`Download ${asset.fileName}`} className="inline-flex max-w-full items-center gap-2 rounded-full bg-black px-5 py-2 text-sm font-semibold text-white dark:bg-white dark:text-black"><DownloadIcon /><span className="max-w-[28rem] truncate">Download {asset.fileName}</span></a>)}<a href={app.githubRepositoryUrl} target="_blank" rel="noreferrer" className="rounded-full border border-black/10 px-5 py-2 text-sm font-semibold dark:border-white/10">GitHub</a></div></div>
       </div>
       {app.description && <p className="mt-7 leading-7 text-gray-600 dark:text-gray-300">{app.description}</p>}
       {sourceUrl && <SourceActions sourceUrl={sourceUrl} />}
     </div>
     <h2 className="mt-10 text-2xl font-semibold">Version history</h2>
-    <div className="mt-4 space-y-3">{app.releases.map(r => <article key={r.id} className="rounded-2xl border border-black/10 p-5 dark:border-white/10"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><strong>v{r.version}</strong><span className="ml-3 text-sm text-gray-500">{r.publishedAt?.toLocaleDateString()}</span></div><div className="flex flex-wrap gap-2">{r.assets.map(asset => <a key={asset.id} href={asset.downloadUrl} target="_blank" rel="noreferrer" className="rounded-full border border-black/10 px-4 py-1.5 text-xs font-semibold dark:border-white/10">Download IPA</a>)}</div></div>{r.releaseNotes && <p className="mt-3 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">{r.releaseNotes}</p>}</article>)}</div>
+    <div className="mt-4 space-y-3">{app.releases.map(r => <article key={r.id} className="rounded-2xl border border-black/10 p-5 dark:border-white/10"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><strong>v{r.version}</strong><span className="ml-3 text-sm text-gray-500">{r.publishedAt?.toLocaleDateString()}</span></div><div className="flex flex-wrap gap-2">{r.assets.map(asset => <a key={asset.id} href={asset.downloadUrl} target="_blank" rel="noreferrer" title={`Download ${asset.fileName}`} className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-black/10 px-4 py-1.5 text-xs font-semibold dark:border-white/10"><DownloadIcon /><span className="max-w-[20rem] truncate">Download {asset.fileName}</span></a>)}</div></div>{r.releaseNotes && <p className="mt-3 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">{r.releaseNotes}</p>}</article>)}</div>
   </main>;
 }
