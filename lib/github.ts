@@ -9,6 +9,7 @@ export type GitHubRepository = z.infer<typeof repositorySchema>;
 export type GitHubAsset = { id: number; name: string; browser_download_url: string; size: number; content_type: string | null };
 export type GitHubRelease = { id: number; tag_name: string; name: string | null; body: string | null; published_at: string | null; created_at: string; prerelease: boolean; draft: boolean; assets: GitHubAsset[] };
 type GitHubContent = { name: string; path: string; type: "file" | "dir" };
+type GitHubUser = { avatar_url?: string };
 
 export async function githubFetch<T>(path: string): Promise<T> {
   const headers: HeadersInit = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "SideloadHub/1.0" };
@@ -43,7 +44,6 @@ export async function getReleases(owner: string, repository: string) { return gi
 export async function getReadme(owner: string, repository: string) { try { const data = await githubFetch<{ content?: string; encoding?: string }>(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/readme`); return data.content ? Buffer.from(data.content, data.encoding === "base64" ? "base64" : "utf8").toString("utf8") : ""; } catch { return ""; } }
 export async function getAltStoreConfig(owner: string, repository: string, branch: string) { try { const data = await githubFetch<{ content?: string; encoding?: string }>(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/contents/.altstore.json?ref=${encodeURIComponent(branch)}`); if (!data.content) return null; return JSON.parse(Buffer.from(data.content, data.encoding === "base64" ? "base64" : "utf8").toString("utf8")) as Record<string, unknown>; } catch { return null; } }
 
-const COMMON_ICON_PATHS = ["assets/images/icon.png", "assets/images/icon.jpg", "assets/images/icon.jpeg", "assets/images/icon.webp", "assets/icon.png", "assets/icon.jpg", "assets/icon.jpeg", "assets/icon.webp", "icon.png", "icon.jpg", "icon.jpeg", "icon.webp", "Resources/icon.png", "Resources/icon.jpg", "resources/icon.png", "resources/icon.jpg", ".github/assets/icon.png", ".github/icon.png"];
 const COMMON_HEADER_PATHS = ["assets/banners/header.png", "assets/banners/header.jpg", "assets/banners/header.jpeg", "assets/banners/header.webp", "assets/banners/feature-graphic.png", "assets/banners/feature-graphic.jpg", "assets/banners/feature-graphic.jpeg", "assets/banners/feature-graphic.webp", "assets/banners/Strmify-feature-graphic.png", "assets/header.png", "assets/header.jpg", "assets/header.jpeg", "assets/header.webp", ".github/assets/header.png", ".github/header.png"];
 
 export async function getRepositoryAsset(owner: string, repository: string, branch: string, paths: string[], configured?: unknown) {
@@ -52,9 +52,17 @@ export async function getRepositoryAsset(owner: string, repository: string, bran
   return null;
 }
 
-export function getRepositoryIcon(owner: string, repository: string, branch: string, configuredIcon?: unknown) {
-  return getRepositoryAsset(owner, repository, branch, COMMON_ICON_PATHS, configuredIcon).then((icon) => icon ?? `https://github.com/${encodeURIComponent(owner)}.png?size=256`);
+// App icons are sourced only from GitHub's user API. No repository icon paths are checked.
+export async function getRepositoryIcon(owner: string, _repository: string, _branch: string, configuredIcon?: unknown) {
+  if (typeof configuredIcon === "string" && configuredIcon.startsWith("https://")) return configuredIcon;
+  try {
+    const user = await githubFetch<GitHubUser>(`/users/${encodeURIComponent(owner)}`);
+    return user.avatar_url ?? null;
+  } catch {
+    return null;
+  }
 }
+
 export function getRepositoryHeader(owner: string, repository: string, branch: string, configuredHeader?: unknown) { return getRepositoryAsset(owner, repository, branch, COMMON_HEADER_PATHS, configuredHeader); }
 export function isIpaAsset(name: string) { return name.toLowerCase().endsWith(".ipa"); }
 export function normalizeVersion(value: string) { const match = value.match(/\d+(?:\.\d+){0,3}(?:[-+][0-9A-Za-z.-]+)?/); return match?.[0] ?? value.trim().replace(/^v/i, ""); }
