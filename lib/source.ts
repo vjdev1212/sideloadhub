@@ -61,17 +61,23 @@ function compareVersion(a: string, b: string) {
   return b.localeCompare(a);
 }
 
-export function buildAltStoreSource(app: SourceApp, metadata: SourceMetadata): AltStoreSource {
+function normalizeApp(app: SourceApp): SourceApp {
   const versions = app.versions
     .filter(v => v.version && /^https:\/\//i.test(v.downloadURL))
     .sort((a, b) => compareVersion(a.version, b.version))
     .slice(0, 5);
 
-  const latestDownloadURL = versions[0]?.downloadURL || app.downloadURL;
+  return {
+    ...app,
+    versions,
+    downloadURL: versions[0]?.downloadURL || app.downloadURL,
+  };
+}
 
+export function buildAltStoreSource(apps: SourceApp[], metadata: SourceMetadata): AltStoreSource {
   return {
     ...metadata,
-    apps: [{ ...app, versions, downloadURL: latestDownloadURL }],
+    apps: apps.map(normalizeApp).filter(app => app.versions.length > 0),
   };
 }
 
