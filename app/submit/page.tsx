@@ -3,49 +3,10 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowRight, Github, LoaderCircle } from "lucide-react";
 
 export default function SubmitPage() {
-  const router = useRouter();
-  const [githubUrl, setGithubUrl] = useState("");
-  const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setMessage("");
-
-    try {
-      const response = await fetch("/api/submissions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ githubUrl }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Import failed");
-
-      if (data.app?.slug) {
-        router.replace(`/apps/${encodeURIComponent(data.app.slug)}`);
-        return;
-      }
-
-      setMessage("Repository imported.");
-      setGithubUrl("");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Import failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return <main className="mx-auto min-h-screen max-w-3xl px-5 py-16 lg:px-8">
-    <Link href="/" className="text-sm text-gray-500">← SideloadHub</Link>
-    <div className="mt-12"><p className="text-sm font-medium text-blue-600">Repository import</p><h1 className="mt-2 text-5xl font-semibold tracking-tight">Add a GitHub repository.</h1><p className="mt-5 text-lg text-gray-600 dark:text-gray-300">We’ll inspect its public releases and IPA assets, then add eligible releases directly to the catalog.</p></div>
-    <form onSubmit={submit} className="mt-10 rounded-3xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[.04] sm:p-8">
-      <label className="text-sm font-medium">Public GitHub repository URL</label>
-      <input value={githubUrl} onChange={e => setGithubUrl(e.target.value)} required placeholder="https://github.com/developer/app" className="mt-3 w-full rounded-2xl border border-black/10 bg-transparent px-4 py-3 outline-none ring-0 dark:border-white/10" />
-      <button disabled={busy} className="mt-4 rounded-full bg-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-black">{busy ? "Importing…" : "Import repository"}</button>
-      {message && <p className="mt-4 rounded-2xl bg-gray-100 px-4 py-3 text-sm dark:bg-white/10">{message}</p>}
-    </form>
-  </main>;
+  const router = useRouter(); const [githubUrl, setGithubUrl] = useState(""); const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false);
+  async function submit(event: FormEvent) { event.preventDefault(); setBusy(true); setMessage(""); try { const response = await fetch("/api/submissions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ githubUrl }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error || "Import failed"); if (data.app?.slug) { router.replace(`/apps/${encodeURIComponent(data.app.slug)}`); return; } setMessage("Repository imported."); setGithubUrl(""); } catch (error) { setMessage(error instanceof Error ? error.message : "Import failed"); } finally { setBusy(false); } }
+  return <main className="mx-auto max-w-2xl px-4 sm:px-5 lg:px-8"><div className="py-4 md:hidden"><Link href="/" className="text-sm font-medium text-gray-500">SideloadHub</Link></div><section className="pb-12 pt-8 md:pt-16"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-black text-white dark:bg-white dark:text-black"><Github className="h-6 w-6" /></div><p className="mt-6 text-xs font-semibold uppercase tracking-[.12em] text-blue-600">Add to SideloadHub</p><h1 className="mt-2 text-[38px] font-bold leading-[1.05] tracking-[-.04em] sm:text-5xl">Add an iOS app repository.</h1><p className="mt-4 text-[15px] leading-6 text-gray-500 sm:text-base">Paste a public GitHub repository. We’ll find its releases and IPA files and add eligible apps to the catalog.</p></section><form onSubmit={submit} className="rounded-[24px] border border-black/[.08] bg-white p-4 shadow-sm dark:border-white/[.09] dark:bg-white/[.04] sm:p-6"><label className="text-sm font-semibold" htmlFor="github-url">GitHub repository</label><div className="mt-2 flex items-center rounded-2xl border border-black/10 bg-gray-50 px-3 dark:border-white/10 dark:bg-black/20"><Github className="h-4 w-4 shrink-0 text-gray-400" /><input id="github-url" value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)} required type="url" inputMode="url" autoCapitalize="none" autoCorrect="off" placeholder="https://github.com/developer/app" className="min-h-12 min-w-0 flex-1 bg-transparent px-3 text-base outline-none" /></div><button disabled={busy} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-black px-5 text-sm font-semibold text-white shadow-sm disabled:opacity-50 dark:bg-white dark:text-black">{busy ? <><LoaderCircle className="h-4 w-4 animate-spin" />Importing…</> : <>Import repository<ArrowRight className="h-4 w-4" /></>}</button>{message && <p className="mt-3 rounded-2xl bg-gray-100 px-4 py-3 text-sm dark:bg-white/10">{message}</p>}</form><p className="pb-10 pt-5 text-center text-xs leading-5 text-gray-400">Only public repositories are supported. SideloadHub reads public release information and IPA assets.</p></main>;
 }
