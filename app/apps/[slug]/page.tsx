@@ -4,57 +4,19 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { RatingStars } from "@/components/rating-stars";
 import { SourceActions } from "@/components/source-actions";
+import { ArrowLeft, Download, Github, Package } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-function getRequestOrigin(headerStore: Headers) {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
-  if (configured && !/localhost|127\.0\.0\.1/i.test(configured)) return configured;
-
-  const forwardedHost = headerStore.get("x-forwarded-host");
-  const forwardedProto = headerStore.get("x-forwarded-proto") || "https";
-  if (forwardedHost) return `${forwardedProto}://${forwardedHost}`;
-
-  const host = headerStore.get("host");
-  if (host) return `${forwardedProto}://${host}`;
-
-  return configured || "http://localhost:3000";
-}
-
-function DownloadIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M12 3v12" />
-      <path d="m7 10 5 5 5-5" />
-      <path d="M5 20h14" />
-    </svg>
-  );
-}
+function getRequestOrigin(h: Headers) { const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, ""); if (configured && !/localhost|127\.0\.0\.1/i.test(configured)) return configured; const host = h.get("x-forwarded-host") || h.get("host"); return host ? `${h.get("x-forwarded-proto") || "https"}://${host}` : configured || "http://localhost:3000"; }
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const app = await db.app.findFirst({ where: { slug, enabled: true }, include: { repositories: { include: { repository: true }, take: 1 }, releases: { where: { draft: false }, include: { assets: true }, orderBy: { publishedAt: "desc" } } } });
-  if (!app) notFound();
-
-  const aggregate = await db.appRating.aggregate({ where: { appId: app.id }, _avg: { rating: true }, _count: { rating: true } });
-  const average = aggregate._avg.rating ?? 0;
-  const count = aggregate._count.rating ?? 0;
-  const latest = app.releases[0];
-  const repoName = app.repositories[0]?.repository.repository;
-  const site = getRequestOrigin(await headers());
-  const sourceUrl = repoName ? `${site}/${encodeURIComponent(repoName)}/source.json` : null;
-
-  return <main className="mx-auto min-h-screen max-w-5xl px-5 py-12">
-    <div className="flex items-center justify-between"><Link href="/apps" className="text-sm text-gray-500">← Apps</Link><Link href="/submit" className="rounded-full bg-black px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-black">Add Repository</Link></div>
-    <div className="mt-10 rounded-3xl border border-black/10 p-7 dark:border-white/10">
-      <div className="flex flex-col gap-6 sm:flex-row">
-        <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-3xl bg-gray-100 dark:bg-white/10">{app.iconUrl ? <img src={app.iconUrl} alt="" className="h-full w-full object-cover" /> : "✦"}</div>
-        <div className="min-w-0"><h1 className="text-4xl font-semibold">{app.name}</h1><p className="mt-2 text-gray-500">{app.developerName}</p><div className="mt-4"><RatingStars slug={app.slug} average={average} count={count} /></div><div className="mt-5 flex flex-wrap gap-2">{latest?.assets.map(asset => <a key={asset.id} href={asset.downloadUrl} target="_blank" rel="noreferrer" title={`Download ${asset.fileName}`} className="inline-flex max-w-full items-center gap-2 rounded-full bg-black px-5 py-2 text-sm font-semibold text-white dark:bg-white dark:text-black"><DownloadIcon /><span className="max-w-[28rem] truncate">Download {asset.fileName}</span></a>)}<a href={app.githubRepositoryUrl} target="_blank" rel="noreferrer" className="rounded-full border border-black/10 px-5 py-2 text-sm font-semibold dark:border-white/10">GitHub</a></div></div>
-      </div>
-      {app.description && <p className="mt-7 leading-7 text-gray-600 dark:text-gray-300">{app.description}</p>}
-      {sourceUrl && <SourceActions sourceUrl={sourceUrl} />}
-    </div>
-    <h2 className="mt-10 text-2xl font-semibold">Version history</h2>
-    <div className="mt-4 space-y-3">{app.releases.map(r => <article key={r.id} className="rounded-2xl border border-black/10 p-5 dark:border-white/10"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><strong>v{r.version}</strong><span className="ml-3 text-sm text-gray-500">{r.publishedAt?.toLocaleDateString()}</span></div><div className="flex flex-wrap gap-2">{r.assets.map(asset => <a key={asset.id} href={asset.downloadUrl} target="_blank" rel="noreferrer" title={`Download ${asset.fileName}`} className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-black/10 px-4 py-1.5 text-xs font-semibold dark:border-white/10"><DownloadIcon /><span className="max-w-[20rem] truncate">Download {asset.fileName}</span></a>)}</div></div>{r.releaseNotes && <p className="mt-3 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300">{r.releaseNotes}</p>}</article>)}</div>
+  const { slug } = await params; const app = await db.app.findFirst({ where: { slug, enabled: true }, include: { repositories: { include: { repository: true }, take: 1 }, releases: { where: { draft: false }, include: { assets: true }, orderBy: { publishedAt: "desc" } } } }); if (!app) notFound();
+  const aggregate = await db.appRating.aggregate({ where: { appId: app.id }, _avg: { rating: true }, _count: { rating: true } }); const average = aggregate._avg.rating ?? 0; const count = aggregate._count.rating ?? 0; const latest = app.releases[0]; const repoName = app.repositories[0]?.repository.repository; const sourceUrl = repoName ? `${getRequestOrigin(await headers())}/${encodeURIComponent(repoName)}/source.json` : null;
+  return <main className="mx-auto max-w-5xl px-4 sm:px-5 lg:px-8"><div className="flex items-center justify-between py-4"><Link href="/apps" className="inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-gray-500"><ArrowLeft className="h-4 w-4" />Apps</Link><Link href={app.githubRepositoryUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-black/10 px-3 text-sm font-semibold dark:border-white/10"><Github className="h-4 w-4" />GitHub</Link></div>
+    <section className="pb-7 pt-5"><div className="flex items-start gap-4"><div className="grid h-[88px] w-[88px] shrink-0 place-items-center overflow-hidden rounded-[25px] bg-gray-100 text-3xl shadow-sm dark:bg-white/10">{app.iconUrl ? <img src={app.iconUrl} alt="" className="h-full w-full object-cover" /> : "✦"}</div><div className="min-w-0 flex-1"><h1 className="text-[32px] font-bold leading-tight tracking-[-.035em]">{app.name}</h1><p className="mt-1 text-sm text-gray-500">{app.developerName}</p><div className="mt-3"><RatingStars slug={app.slug} average={average} count={count} /></div></div></div>{app.description && <p className="mt-5 text-[15px] leading-6 text-gray-600 dark:text-gray-300">{app.description}</p>}
+      {latest?.assets.length ? <div className="mt-5 space-y-2">{latest.assets.map((asset) => <a key={asset.id} href={asset.downloadUrl} target="_blank" rel="noreferrer" title={`Download ${asset.fileName}`} className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-black px-4 text-sm font-semibold text-white shadow-sm transition active:scale-[.99] dark:bg-white dark:text-black"><Download className="h-5 w-5 shrink-0" /><span className="min-w-0 flex-1 truncate">Download {asset.fileName}</span><span className="text-xs font-medium opacity-60">IPA</span></a>)}</div> : null}
+    </section>
+    {sourceUrl && <SourceActions sourceUrl={sourceUrl} />}
+    <section className="pb-12 pt-9"><div className="mb-4 flex items-center gap-2"><Package className="h-5 w-5" /><h2 className="text-xl font-bold tracking-tight">Version history</h2></div><div className="space-y-3">{app.releases.map((r) => <article key={r.id} className="rounded-[20px] border border-black/[.08] bg-white p-4 dark:border-white/[.09] dark:bg-white/[.04]"><div className="flex items-center justify-between gap-3"><div><strong className="text-sm">v{r.version}</strong>{r.publishedAt && <span className="ml-2 text-xs text-gray-400">{r.publishedAt.toLocaleDateString()}</span>}</div><span className="text-xs text-gray-400">{r.assets.length} IPA{r.assets.length === 1 ? "" : "s"}</span></div><div className="mt-3 space-y-2">{r.assets.map((asset) => <a key={asset.id} href={asset.downloadUrl} target="_blank" rel="noreferrer" className="flex min-h-11 items-center gap-2 rounded-xl border border-black/[.08] px-3 text-xs font-semibold dark:border-white/[.09]"><Download className="h-4 w-4 shrink-0" /><span className="min-w-0 truncate">Download {asset.fileName}</span></a>)}</div>{r.releaseNotes && <p className="mt-3 whitespace-pre-wrap text-sm leading-5 text-gray-500">{r.releaseNotes}</p>}</article>)}</div></section>
   </main>;
 }
