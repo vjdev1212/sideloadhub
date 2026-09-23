@@ -25,7 +25,7 @@ export type SourceApp = {
   subtitle: string;
   localizedDescription: string;
   iconURL: string;
-  headerURL: string;
+  headerURL: string | null;
   website: string;
   tintColor: string;
   category: string;
@@ -41,7 +41,7 @@ export type AltStoreSource = {
   subtitle: string;
   description: string;
   iconURL: string;
-  headerURL: string;
+  headerURL: string | null;
   website: string;
   tintColor: string;
   featuredApps: string[];
@@ -86,7 +86,7 @@ export function buildAltStoreSource(apps: SourceApp[], metadata: SourceMetadata)
   };
 }
 
-export function buildReleaseNews(app: SourceApp, releases: SourceVersion[], tintColor: string, imageURL: string, website: string): SourceNews[] {
+export function buildReleaseNews(app: SourceApp, releases: SourceVersion[], tintColor: string, imageURL: string | null, website: string): SourceNews[] {
   const sorted = [...releases].sort((a, b) => compareVersion(a.version, b.version));
 
   return sorted.slice(0, 5).map((release, index) => ({
@@ -95,7 +95,7 @@ export function buildReleaseNews(app: SourceApp, releases: SourceVersion[], tint
     caption: release.localizedDescription,
     date: release.date.slice(0, 10),
     tintColor,
-    imageURL,
+    imageURL: imageURL || app.iconURL,
     notify: index === 0,
     url: website,
   }));
