@@ -25,7 +25,7 @@ export function MobileNav() {
         <Link href="/admin" className="mobile-sidebar-admin"><Shield className="h-4 w-4" /><span>Admin</span></Link>
       </aside>
       <header className="mobile-landscape-nav">
-        <div className="mobile-landscape-inner"><Link href="/" className="mobile-brand" aria-label="SideloadHub home"><span className="mobile-brand-icon"><Sparkles className="h-4 w-4" /></span><nav className="mobile-nav-links" aria-label="Primary navigation">{items.map(({ href, label, icon: Icon }) => { const active = href === "/" ? pathname === "/" : pathname.startsWith(href); return <Link key={href} href={href} className={active ? "active" : ""}><Icon className="h-[17px] w-[17px]" strokeWidth={active ? 2.5 : 2} /><span>{label === "Add Repository" ? "Add" : label}</span></Link>; })}</nav></div>
+        <div className="mobile-landscape-inner"><Link href="/" className="mobile-brand" aria-label="SideloadHub home"><span className="mobile-brand-icon"><Sparkles className="h-4 w-4" /></span><span>SideloadHub</span></Link><nav className="mobile-nav-links" aria-label="Primary navigation">{items.map(({ href, label, icon: Icon }) => { const active = href === "/" ? pathname === "/" : pathname.startsWith(href); return <Link key={href} href={href} className={active ? "active" : ""}><Icon className="h-[17px] w-[17px]" strokeWidth={active ? 2.5 : 2} /><span>{label === "Add Repository" ? "Add" : label}</span></Link>; })}</nav></div>
       </header>
     </>
   );
