@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { Compass, Menu, Plus, Shield, Sparkles, X } from "lucide-react";
-import { usePathname, useState } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const items = [
   { href: "/", label: "Home", icon: Sparkles },
