@@ -20,7 +20,7 @@ export function MobileNav() {
   return (
     <>
       <aside className="mobile-sidebar" aria-label="Primary navigation">
-        <Link href="/" className="mobile-sidebar-brand" aria-label="SideloadHub home"><span className="mobile-brand-icon"><Sparkles className="h-4 w-4" /></span><span>SideloadHub</span></Link>
+        <Link href="/" className="mobile-sidebar-brand" aria-label="SideloadHub home"><span className="mobile-brand-icon"><Sparkles className="h-4 w-4" /></span><span className="mobile-sidebar-brand-text">SideloadHub</span></Link>
         <nav className="mobile-sidebar-links">{links}</nav>
         <Link href="/admin" className="mobile-sidebar-admin"><Shield className="h-4 w-4" /><span>Admin</span></Link>
       </aside>
