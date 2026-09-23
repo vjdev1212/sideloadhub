@@ -59,7 +59,7 @@ export function PwaRegister() {
       )}
       {showInstall && installEvent && (
         <div className="pwa-install-prompt" role="dialog" aria-label="Install SideloadHub">
-          <div className="pwa-install-icon"><Download className="h-5 w-5" /></div>
+          <img className="pwa-install-icon" src="/icon.svg" alt="" />
           <div className="pwa-install-copy">
             <strong>Install SideloadHub</strong>
             <span>Use it like a native app.</span>
