@@ -4,7 +4,12 @@ import { isValidAdminToken } from "@/lib/admin";
 import { getRepository, parseGitHubRepositoryUrl } from "@/lib/github";
 import { syncRepository } from "@/lib/sync";
 
-export async function GET() {
+function isAdmin(request: NextRequest) {
+  return isValidAdminToken(request.cookies.get("sideloadhub_admin")?.value);
+}
+
+export async function GET(request: NextRequest) {
+  if (!isAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const repositories = await db.repository.findMany({ orderBy: { updatedAt: "desc" }, include: { apps: { include: { app: true } }, _count: { select: { releases: true } } } });
   return NextResponse.json(repositories);
 }
@@ -25,8 +30,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const token = request.cookies.get("sideloadhub_admin")?.value;
-  if (!isValidAdminToken(token)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isAdmin(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
     const body = await request.json();
