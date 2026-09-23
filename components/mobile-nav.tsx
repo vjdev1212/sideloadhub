@@ -1,34 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { Compass, Plus, Sparkles } from "lucide-react";
+import { Compass, Plus, Shield, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
+
+const items = [
+  { href: "/", label: "Home", icon: Sparkles },
+  { href: "/apps", label: "Browse", icon: Compass },
+  { href: "/submit", label: "Add Repository", icon: Plus },
+];
 
 export function MobileNav() {
   const pathname = usePathname();
-  const items = [
-    { href: "/", label: "Home", icon: Sparkles, active: pathname === "/" },
-    { href: "/apps", label: "Browse", icon: Compass, active: pathname.startsWith("/apps") },
-    { href: "/submit", label: "Add", icon: Plus, active: pathname.startsWith("/submit") },
-  ];
+  const links = items.map(({ href, label, icon: Icon }) => {
+    const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+    return <Link key={href} href={href} className={active ? "active" : ""}><Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.5 : 2} /><span>{label}</span></Link>;
+  });
 
   return (
-    <header className="mobile-nav">
-      <div className="mobile-nav-inner">
-        <Link href="/" className="mobile-brand" aria-label="SideloadHub home">
-          <span className="mobile-brand-icon"><Sparkles className="h-4 w-4" /></span>
-          <span>SideloadHub</span>
-        </Link>
-        <nav className="mobile-nav-links" aria-label="Primary navigation">
-          {items.map(({ href, label, icon: Icon, active }) => (
-            <Link key={href} href={href} className={active ? "active" : ""}>
-              <Icon className="h-[17px] w-[17px]" strokeWidth={active ? 2.5 : 2} />
-              <span>{label}</span>
-            </Link>
-          ))}
-        </nav>
-      </div>
-    </header>
+    <>
+      <aside className="mobile-sidebar" aria-label="Primary navigation">
+        <Link href="/" className="mobile-sidebar-brand" aria-label="SideloadHub home"><span className="mobile-brand-icon"><Sparkles className="h-4 w-4" /></span><span>SideloadHub</span></Link>
+        <nav className="mobile-sidebar-links">{links}</nav>
+        <Link href="/admin" className="mobile-sidebar-admin"><Shield className="h-4 w-4" /><span>Admin</span></Link>
+      </aside>
+      <header className="mobile-landscape-nav">
+        <div className="mobile-landscape-inner"><Link href="/" className="mobile-brand" aria-label="SideloadHub home"><span className="mobile-brand-icon"><Sparkles className="h-4 w-4" /></span><nav className="mobile-nav-links" aria-label="Primary navigation">{items.map(({ href, label, icon: Icon }) => { const active = href === "/" ? pathname === "/" : pathname.startsWith(href); return <Link key={href} href={href} className={active ? "active" : ""}><Icon className="h-[17px] w-[17px]" strokeWidth={active ? 2.5 : 2} /><span>{label === "Add Repository" ? "Add" : label}</span></Link>; })}</nav></div>
+      </header>
+    </>
   );
 }
 
