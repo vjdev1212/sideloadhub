@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Compass, Plus, Shield, Sparkles } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { Compass, Menu, Plus, Shield, Sparkles, X } from "lucide-react";
+import { usePathname, useState } from "next/navigation";
 
 const items = [
   { href: "/", label: "Home", icon: Sparkles },
@@ -12,17 +12,20 @@ const items = [
 
 export function MobileNav() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
   const links = items.map(({ href, label, icon: Icon }) => {
     const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-    return <Link key={href} href={href} className={active ? "active" : ""}><Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.5 : 2} /><span>{label}</span></Link>;
+    return <Link key={href} href={href} onClick={() => setOpen(false)} className={active ? "active" : ""}><Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.5 : 2} /><span>{label}</span></Link>;
   });
 
   return (
     <>
-      <aside className="mobile-sidebar" aria-label="Primary navigation">
-        <Link href="/" className="mobile-sidebar-brand" aria-label="SideloadHub home"><span className="mobile-brand-icon"><Sparkles className="h-4 w-4" /></span><span className="mobile-sidebar-brand-text">SideloadHub</span></Link>
+      <button className="mobile-menu-button" onClick={() => setOpen((value) => !value)} aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open}>{open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</button>
+      {open && <button className="mobile-sidebar-backdrop" aria-label="Close navigation" onClick={() => setOpen(false)} />}
+      <aside className={`mobile-sidebar${open ? " open" : ""}`} aria-label="Primary navigation">
+        <Link href="/" onClick={() => setOpen(false)} className="mobile-sidebar-brand" aria-label="SideloadHub home"><span className="mobile-brand-icon"><Sparkles className="h-4 w-4" /></span><span className="mobile-sidebar-brand-text">SideloadHub</span></Link>
         <nav className="mobile-sidebar-links">{links}</nav>
-        <Link href="/admin" className="mobile-sidebar-admin"><Shield className="h-4 w-4" /><span>Admin</span></Link>
+        <Link href="/admin" onClick={() => setOpen(false)} className="mobile-sidebar-admin"><Shield className="h-4 w-4" /><span>Admin</span></Link>
       </aside>
       <header className="mobile-landscape-nav">
         <div className="mobile-landscape-inner"><Link href="/" className="mobile-brand" aria-label="SideloadHub home"><span className="mobile-brand-icon"><Sparkles className="h-4 w-4" /></span><span>SideloadHub</span></Link><nav className="mobile-nav-links" aria-label="Primary navigation">{items.map(({ href, label, icon: Icon }) => { const active = href === "/" ? pathname === "/" : pathname.startsWith(href); return <Link key={href} href={href} className={active ? "active" : ""}><Icon className="h-[17px] w-[17px]" strokeWidth={active ? 2.5 : 2} /><span>{label === "Add Repository" ? "Add" : label}</span></Link>; })}</nav></div>
