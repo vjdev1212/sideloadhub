@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Download, X } from "lucide-react";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -57,14 +58,17 @@ export function PwaRegister() {
         </div>
       )}
       {showInstall && installEvent && (
-        <div className="pwa-install-banner" role="dialog" aria-label="Install SideloadHub">
-          <div className="pwa-install-icon">S</div>
+        <div className="pwa-install-prompt" role="dialog" aria-label="Install SideloadHub">
+          <div className="pwa-install-icon"><Download className="h-5 w-5" /></div>
           <div className="pwa-install-copy">
             <strong>Install SideloadHub</strong>
-            <span>Use it like a native app with faster cached loading.</span>
+            <span>Use it like a native app.</span>
           </div>
-          <button onClick={install}>Install</button>
-          <button className="pwa-dismiss" onClick={() => setShowInstall(false)} aria-label="Dismiss">×</button>
+          <button className="pwa-install-button" onClick={install}>
+            <Download className="h-4 w-4" />
+            Install
+          </button>
+          <button className="pwa-dismiss" onClick={() => setShowInstall(false)} aria-label="Dismiss"><X className="h-4 w-4" /></button>
         </div>
       )}
     </>
