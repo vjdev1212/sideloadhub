@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 const DEFAULT_TINT = "#007AFF";
 const DEFAULT_MIN_OS = "26.0";
+const PLATFORMS = ["ios", "ipados", "tvos", "watchos", "visionos", "macos"];
 
 function asString(config: Record<string, unknown>, key: string) {
   return typeof config[key] === "string" && config[key].trim() ? config[key].trim() : undefined;
@@ -24,6 +25,26 @@ function safePart(value: string) {
 
 function today() {
   return new Date().toISOString();
+}
+
+function assetIdentity(fileName: string) {
+  const withoutExtension = fileName.replace(/\.ipa$/i, "");
+  const platformMatch = withoutExtension.match(
+    new RegExp(`(?:^|[-_. ])(${PLATFORMS.join("|")})(?=$|[-_. ])`, "i"),
+  );
+  const platform = platformMatch?.[1]?.toLowerCase() || "ios";
+
+  const baseName = withoutExtension
+    .replace(new RegExp(`(?:^|[-_. ])${PLATFORMS.join("|")}(?=$|[-_. ])`, "gi"), "-")
+    .replace(/(?:^|[-_. ])v?\\d+(?:\\.\\d+){1,3}(?=$|[-_. ])/gi, "-")
+    .replace(/[-_. ]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return {
+    key: `${baseName.toLowerCase()}-${platform}`,
+    baseName: baseName || "app",
+    platform,
+  };
 }
 
 export async function GET(_request: Request, { params }: { params: Promise<{ repository: string }> }) {
@@ -74,12 +95,23 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
       ? config.appPermissions as { entitlements?: unknown; privacy?: unknown }
       : {};
 
-    const assetsByName = new Map<string, { fileName: string; versions: SourceVersion[] }>();
+    const assetsByIdentity = new Map<string, {
+      baseName: string;
+      platform: string;
+      versions: SourceVersion[];
+    }>();
+
     for (const release of app.releases) {
       for (const asset of release.assets) {
         if (!/^https:\/\//i.test(asset.downloadUrl) || !/\.ipa$/i.test(asset.fileName)) continue;
-        const key = asset.fileName.toLowerCase();
-        const entry = assetsByName.get(key) || { fileName: asset.fileName, versions: [] };
+
+        const identity = assetIdentity(asset.fileName);
+        const entry = assetsByIdentity.get(identity.key) || {
+          baseName: identity.baseName,
+          platform: identity.platform,
+          versions: [],
+        };
+
         entry.versions.push({
           version: release.version || "1.0.0",
           date: release.publishedAt?.toISOString() || today(),
@@ -88,19 +120,23 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
           localizedDescription: release.releaseNotes?.trim() || `Version ${release.version || "1.0.0"} release.`,
           minOSVersion,
         });
-        assetsByName.set(key, entry);
+
+        assetsByIdentity.set(identity.key, entry);
       }
     }
 
-    const assets = [...assetsByName.values()];
+    const assets = [...assetsByIdentity.values()];
+    const hasMultiplePlatforms = new Set(assets.map(asset => asset.platform)).size > 1;
+    const baseIdentifier = app.bundleId?.trim() || `com.sideloadhub.${safePart(repo.repository)}`;
+
     for (const entry of assets) {
       const versions = entry.versions.sort((a, b) => b.date.localeCompare(a.date));
-      const variant = assets.length > 1 ? ` — ${entry.fileName.replace(/\.ipa$/i, "")}` : "";
-      const baseIdentifier = app.bundleId?.trim() || `com.sideloadhub.${safePart(repo.repository)}`;
-      const identifier = assets.length > 1 ? `${baseIdentifier}.${safePart(entry.fileName)}` : baseIdentifier;
+      const platformSuffix = entry.platform === "ios" && !hasMultiplePlatforms ? "" : `-${entry.platform}`;
+      const displayPlatform = entry.platform === "ipados" ? "iPadOS" : entry.platform === "tvos" ? "tvOS" : entry.platform === "watchos" ? "watchOS" : entry.platform === "visionos" ? "visionOS" : entry.platform === "macos" ? "macOS" : "iOS";
+      const identifier = `${baseIdentifier}${platformSuffix}`;
 
       const sourceApp: SourceApp = {
-        name: `${app.name}${variant}`,
+        name: hasMultiplePlatforms ? `${app.name} — ${displayPlatform}` : app.name,
         bundleIdentifier: identifier,
         developerName: app.developerName || repo.owner,
         subtitle,
@@ -142,8 +178,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
     headerURL: primary.headerURL,
     website: primary.website,
     tintColor: primary.tintColor,
-    featuredApps: repositoryApps.map(app => app.bundleIdentifier),
-    news: allNews.slice(0, 10),
+    featuredApps: [...new Set(repositoryApps.map(app => app.bundleIdentifier))],
+    news: allNews
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 10),
   });
 
   return NextResponse.json(source, {
