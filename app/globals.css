@@ -8,113 +8,45 @@
   --border: rgba(17,24,39,.09);
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #090a0d;
-    --foreground: #f5f7fa;
-    --muted: #9ca3af;
-    --card: rgba(20,22,28,.9);
-    --border: rgba(255,255,255,.1);
-  }
+  :root { --background:#090a0d; --foreground:#f5f7fa; --muted:#9ca3af; --card:rgba(20,22,28,.9); --border:rgba(255,255,255,.1); }
 }
-* { box-sizing: border-box; }
-html {
-  scroll-behavior: smooth;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-text-size-adjust: 100%;
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; -webkit-tap-highlight-color:transparent; -webkit-text-size-adjust:100%; }
+body { margin:0; min-width:320px; min-height:100dvh; background:var(--background); color:var(--foreground); font-family:Arial,Helvetica,sans-serif; padding-bottom:env(safe-area-inset-bottom); overscroll-behavior-y:none; }
+a { text-decoration:none; }
+button,a,input { touch-action:manipulation; }
+button { -webkit-user-select:none; user-select:none; }
+::selection { background:rgba(59,130,246,.2); }
+
+.app-shell { min-height:100dvh; }
+.mobile-nav { display:block; position:sticky; top:0; z-index:50; padding-top:env(safe-area-inset-top); background:color-mix(in srgb,var(--background) 82%,transparent); backdrop-filter:saturate(180%) blur(22px); -webkit-backdrop-filter:saturate(180%) blur(22px); border-bottom:1px solid var(--border); }
+.mobile-nav-inner { min-height:58px; display:flex; align-items:center; gap:12px; max-width:100%; padding:0 14px; }
+.mobile-brand { display:flex; align-items:center; gap:8px; flex:1; min-width:0; font-size:15px; font-weight:700; letter-spacing:-.02em; }
+.mobile-brand-icon { display:grid; width:30px; height:30px; flex:0 0 30px; place-items:center; border-radius:9px; background:#111214; color:#fff; }
+.mobile-nav-links { display:flex; align-items:center; gap:2px; }
+.mobile-nav-links a { display:flex; align-items:center; gap:5px; min-height:38px; padding:0 9px; border-radius:12px; color:#6b7280; font-size:12px; font-weight:600; white-space:nowrap; }
+.mobile-nav-links a.active { background:#111214; color:#fff; }
+@media (prefers-color-scheme:dark) {
+  .mobile-nav-links a { color:#9ca3af; }
+  .mobile-nav-links a.active { background:#fff; color:#111214; }
+  .mobile-brand-icon { background:#fff; color:#111214; }
 }
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100dvh;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  padding-bottom: env(safe-area-inset-bottom);
-  overscroll-behavior-y: none;
+@media (min-width:768px) {
+  .mobile-nav { display:none; }
 }
-a { text-decoration: none; }
-button, a, input { touch-action: manipulation; }
-button { -webkit-user-select: none; user-select: none; }
-::selection { background: rgba(59,130,246,.2); }
-.app-shell {
-  min-height: 100dvh;
-  padding-bottom: calc(92px + env(safe-area-inset-bottom));
+@media (max-width:767px) {
+  .desktop-header { display:none; }
+  h1 { text-wrap:balance; }
+  input,button { font-size:16px; }
+  .pwa-install-banner { bottom:calc(18px + env(safe-area-inset-bottom)); }
 }
-.mobile-nav {
-  display: block;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-@media (min-width: 768px) {
-  .app-shell { padding-bottom: 0; }
-  .mobile-nav { display: none; }
-}
-@media (max-width: 767px) {
-  h1 { text-wrap: balance; }
-  input, button { font-size: 16px; }
-}
-.pwa-status-banner {
-  position: fixed;
-  z-index: 100;
-  top: env(safe-area-inset-top);
-  left: 12px;
-  right: 12px;
-  margin-top: 10px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  background: #111214;
-  color: white;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0,0,0,.18);
-}
-.pwa-install-banner {
-  position: fixed;
-  z-index: 99;
-  left: 12px;
-  right: 12px;
-  bottom: calc(76px + env(safe-area-inset-bottom));
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--card) 94%, transparent);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 14px 40px rgba(0,0,0,.16);
-}
-.pwa-install-icon {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
-  place-items: center;
-  border-radius: 12px;
-  background: #111214;
-  color: white;
-  font-weight: 800;
-}
-.pwa-install-copy { min-width: 0; flex: 1; }
-.pwa-install-copy strong, .pwa-install-copy span { display: block; }
-.pwa-install-copy strong { font-size: 13px; }
-.pwa-install-copy span { margin-top: 2px; color: var(--muted); font-size: 11px; line-height: 1.35; }
-.pwa-install-banner button {
-  min-height: 38px;
-  padding: 0 13px;
-  border: 0;
-  border-radius: 12px;
-  background: #111214;
-  color: white;
-  font-weight: 700;
-}
-.pwa-install-banner .pwa-dismiss {
-  padding: 0 7px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 22px;
-}
-@media (min-width: 768px) {
-  .pwa-install-banner { right: 24px; left: auto; bottom: 24px; width: 360px; }
-}
+.pwa-status-banner { position:fixed; z-index:100; top:calc(env(safe-area-inset-top) + 8px); left:12px; right:12px; padding:10px 14px; border-radius:14px; background:#111214; color:#fff; font-size:13px; font-weight:600; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.18); }
+.pwa-install-banner { position:fixed; z-index:99; left:12px; right:12px; bottom:18px; display:flex; align-items:center; gap:10px; padding:10px; border:1px solid var(--border); border-radius:18px; background:color-mix(in srgb,var(--card) 94%,transparent); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); box-shadow:0 14px 40px rgba(0,0,0,.16); }
+.pwa-install-icon { display:grid; width:42px; height:42px; flex:0 0 42px; place-items:center; border-radius:12px; background:#111214; color:#fff; font-weight:800; }
+.pwa-install-copy { min-width:0; flex:1; }
+.pwa-install-copy strong,.pwa-install-copy span { display:block; }
+.pwa-install-copy strong { font-size:13px; }
+.pwa-install-copy span { margin-top:2px; color:var(--muted); font-size:11px; line-height:1.35; }
+.pwa-install-banner button { min-height:38px; padding:0 13px; border:0; border-radius:12px; background:#111214; color:#fff; font-weight:700; }
+.pwa-install-banner .pwa-dismiss { padding:0 7px; background:transparent; color:var(--muted); font-size:22px; }
+@media (min-width:768px) { .pwa-install-banner { right:24px; left:auto; bottom:24px; width:360px; } }
