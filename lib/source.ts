@@ -75,21 +75,28 @@ function normalizeApp(app: SourceApp): SourceApp {
 }
 
 export function buildAltStoreSource(apps: SourceApp[], metadata: SourceMetadata): AltStoreSource {
+  const normalized = apps
+    .map(normalizeApp)
+    .filter(app => app.versions.length > 0);
+
   return {
     ...metadata,
-    apps: apps.map(normalizeApp).filter(app => app.versions.length > 0),
+    featuredApps: [...new Set(metadata.featuredApps.filter(id => normalized.some(app => app.bundleIdentifier === id)))],
+    apps: normalized,
   };
 }
 
 export function buildReleaseNews(app: SourceApp, releases: SourceVersion[], tintColor: string, imageURL: string, website: string): SourceNews[] {
-  return releases.slice(0, 5).map(release => ({
+  const sorted = [...releases].sort((a, b) => compareVersion(a.version, b.version));
+
+  return sorted.slice(0, 5).map((release, index) => ({
     title: `${app.name} v${release.version} Released`,
     identifier: `${app.bundleIdentifier}-${release.version}-release`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
     caption: release.localizedDescription,
     date: release.date.slice(0, 10),
     tintColor,
     imageURL,
-    notify: true,
+    notify: index === 0,
     url: website,
   }));
 }
