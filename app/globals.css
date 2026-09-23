@@ -24,6 +24,7 @@ button { -webkit-user-select:none; user-select:none; }
 
 @media (max-width:767px) and (orientation:portrait) {
   body { padding-left:var(--mobile-sidebar-width,78px); }
+  .app-shell { padding-top:env(safe-area-inset-top); }
   .desktop-header { display:none; }
   .mobile-sidebar { display:flex; position:fixed; inset:0 auto 0 0; z-index:50; width:var(--mobile-sidebar-width,78px); flex-direction:column; align-items:center; padding:calc(env(safe-area-inset-top) + 14px) 10px calc(env(safe-area-inset-bottom) + 14px); background:color-mix(in srgb,var(--background) 88%,transparent); backdrop-filter:saturate(180%) blur(22px); -webkit-backdrop-filter:saturate(180%) blur(22px); border-right:1px solid var(--border); }
   .mobile-sidebar { --mobile-sidebar-width:78px; transition:width .22s ease; overflow:hidden; }
